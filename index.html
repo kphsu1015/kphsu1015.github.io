@@ -184,6 +184,18 @@
   <div class="line"><span class="icon">🏅</span><span class="text">你獲得了 XXX</span></div>
 </div>
 
+<!-- iOS 聲音啟用門檻（首次點擊授權音訊） -->
+<div id="soundGate" style="position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:2000;">
+  <div style="width:min(520px,92vw);background:#fff;border-radius:16px;padding:16px;box-shadow:0 20px 50px rgba(0,0,0,.35);text-align:center">
+    <h3 style="margin:0 0 8px">🔊 啟用聲音</h3>
+    <p style="margin:0 0 10px;color:#444;line-height:1.5">
+      iPhone 需要你先點一下才能播放發音與音樂。<br>
+      請確認<i>機身側邊靜音鍵已關閉</i>與<i>音量不為零</i>。
+    </p>
+    <button onclick="enableSoundIOS()">我已開啟音量，啟用聲音</button>
+  </div>
+</div>
+
 <!-- 模式選擇彈窗 -->
 <div id="scoreModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
   <div class="modal">
@@ -234,33 +246,81 @@ const UPPER="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""), LOWER="abcdefghijklmnopqrstu
 
 /* ===== 背景音樂（依模式切換） ===== */
 const BGM_SOURCES = {
-  home:   "./scenery-142705.mp3",          // 首頁（原本）
+  home:   "./scenery-142705.mp3",          // 首頁
   upper:  "./scent-of-forest-116193.mp3",  // 大寫
   lower:  "./midnight-forest-184304.mp3",  // 小寫
   mixed:  "./mysterious_night-286709.mp3", // 混合
-  extreme:"./mysterious_night-286709.mp3"  // 極限（暫與混合共用）
+  extreme:"./mysterious_night-286709.mp3"  // 極限
 };
 let bgmEl = new Audio(); bgmEl.loop = true; bgmEl.preload = "auto";
 let bgmOn  = loadLS("az-bgm-on", true);
 let bgmVol = loadLS("az-bgm-vol", 0.35);
 bgmEl.volume = clamp(bgmVol, 0, 1);
 let currentBgmKey = "home";
-async function setBGMTrack(key){
-  currentBgmKey = key;
-  const src = BGM_SOURCES[key] || BGM_SOURCES.home;
-  if (bgmEl.src && bgmEl.src.endsWith(src.replace("./",""))) return;
-  try { bgmEl.pause(); } catch {}
-  bgmEl.src = src; bgmEl.currentTime = 0;
-  if (bgmOn) { try { await unlockAudioOnce(); await bgmEl.play(); } catch {} }
+
+/* ===== BGM 音量平衡：WebAudio 管線 + 壓縮器 + Ducking ===== */
+let bgmAudioCtx = null, bgmSrcNode = null, bgmGainNode = null, bgmComp = null;
+let duckTargetGain = 0.4;   // 約 -8 dB
+let normalBgmGain = 1.0;
+let isDucked = false;
+function ensureBgmPipeline(){
+  if (bgmAudioCtx) return;
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  bgmAudioCtx = new Ctx();
+
+  bgmGainNode = bgmAudioCtx.createGain();
+  bgmGainNode.gain.value = bgmVol * normalBgmGain;
+
+  bgmComp = bgmAudioCtx.createDynamicsCompressor();
+  bgmComp.threshold.setValueAtTime(-24, bgmAudioCtx.currentTime);
+  bgmComp.knee.setValueAtTime(30, bgmAudioCtx.currentTime);
+  bgmComp.ratio.setValueAtTime(12, bgmAudioCtx.currentTime);
+  bgmComp.attack.setValueAtTime(0.003, bgmAudioCtx.currentTime);
+  bgmComp.release.setValueAtTime(0.25, bgmAudioCtx.currentTime);
+
+  try{
+    if (!bgmSrcNode && bgmEl){
+      bgmSrcNode = bgmAudioCtx.createMediaElementSource(bgmEl);
+      bgmSrcNode.connect(bgmGainNode).connect(bgmComp).connect(bgmAudioCtx.destination);
+    }
+  }catch(e){
+    // 同一 <audio> 僅能建立一次 MediaElementSource，若已建立直接忽略
+  }
 }
 function setBGMVolume(v){
-  bgmVol = clamp(parseFloat(v)||0, 0, 1); bgmEl.volume = bgmVol; saveLS("az-bgm-vol", bgmVol);
+  bgmVol = clamp(parseFloat(v)||0, 0, 1);
+  saveLS("az-bgm-vol", bgmVol);
+  ensureBgmPipeline();
+  const now = bgmAudioCtx ? bgmAudioCtx.currentTime : 0;
+  if (bgmGainNode){
+    try{
+      bgmGainNode.gain.cancelScheduledValues(now);
+      bgmGainNode.gain.setTargetAtTime(bgmVol * (isDucked ? duckTargetGain : normalBgmGain), now, 0.05);
+    }catch{
+      bgmGainNode.gain.value = bgmVol * (isDucked ? duckTargetGain : normalBgmGain);
+    }
+  }
   const r = document.getElementById('bgmVol'); if(r && Math.abs((+r.value)-bgmVol)>0.001) r.value = bgmVol;
 }
-function updateBgmBtn(){ const b = document.getElementById('bgmToggleBtn'); if (b) b.textContent = (bgmOn ? "🎵 關閉 BGM" : "🎵 開啟 BGM"); }
-async function playBGM(){ if(!bgmOn) return; try { await unlockAudioOnce(); await bgmEl.play(); } catch {} }
+async function playBGM(){
+  if (!bgmOn) return;
+  ensureBgmPipeline();
+  try { await unlockAudioOnce(); if (bgmAudioCtx?.state === 'suspended') await bgmAudioCtx.resume(); await bgmEl.play(); } catch {}
+}
 function pauseBGM(reset=false){ try { bgmEl.pause(); if(reset) bgmEl.currentTime = 0; } catch {} }
 function toggleBGM(){ bgmOn = !bgmOn; saveLS("az-bgm-on", bgmOn); updateBgmBtn(); if(bgmOn){ playBGM(); } else { pauseBGM(true); } }
+function updateBgmBtn(){ const b = document.getElementById('bgmToggleBtn'); if (b) b.textContent = (bgmOn ? "🎵 關閉 BGM" : "🎵 開啟 BGM"); }
+function duckBGM(on){
+  ensureBgmPipeline();
+  if (!bgmGainNode) return;
+  const now = bgmAudioCtx ? bgmAudioCtx.currentTime : 0;
+  isDucked = !!on;
+  const target = bgmVol * (on ? duckTargetGain : normalBgmGain);
+  try{
+    bgmGainNode.gain.cancelScheduledValues(now);
+    bgmGainNode.gain.setTargetAtTime(target, now, on ? 0.03 : 0.08);
+  }catch{ bgmGainNode.gain.value = target; }
+}
 
 /* ===== 狀態 ===== */
 let mode="upper",current="",score=0,streak=0,played=0,locked=false;
@@ -313,32 +373,60 @@ async function speakSolo(text, rate=0.9){
   await playUtterance(text, rate, my);
 }
 
-/* ===== 真人音檔優先：字母 + 動物單字 ===== */
+/* ===== 真人音檔優先：字母 + 動物單字（Duck BGM） ===== */
 let _letterPlayer=null, _wordPlayer=null, _audioToken=0;
 const LETTER_SRC = L => `./sounds/letters/${L.toUpperCase()}.mp3`;
 const WORD_SRC   = w => `./sounds/animals/${w}.mp3`;
 
-function stopLetterAudio(){ if(_letterPlayer){ try{_letterPlayer.pause(); _letterPlayer.src="";}catch{} _letterPlayer=null; } }
-function stopWordAudio(){ if(_wordPlayer){ try{_wordPlayer.pause(); _wordPlayer.src="";}catch{} _wordPlayer=null; } }
+function stopLetterAudio(){ if(_letterPlayer){ try{ _letterPlayer.pause(); }catch{} _letterPlayer.src=""; _letterPlayer=null; } }
+function stopWordAudio(){ if(_wordPlayer){ try{ _wordPlayer.pause(); }catch{} _wordPlayer.src=""; _wordPlayer=null; } }
 function stopAllSpeech(){ try{ speechSynthesis.cancel(); }catch{} stopLetterAudio(); stopWordAudio(); }
 
 async function playLetterReal(letter){
-  const token=++_audioToken; stopAllSpeech();
+  const token=++_audioToken; stopLetterAudio();
   const a=new Audio(LETTER_SRC(letter));
-  a.preload="auto"; _letterPlayer=a;
-  a.onerror=()=>{ if(token!==_audioToken) return; if(letter.toUpperCase()==="Z") speakSolo("zee"); else speakSolo(letter); };
-  try{ await unlockAudioOnce(); await a.play(); }catch{ if(token!==_audioToken) return; if(letter.toUpperCase()==="Z") speakSolo("zee"); else speakSolo(letter); }
+  a.preload="auto"; a.setAttribute('playsinline',''); _letterPlayer=a;
+
+  a.onended = ()=>{ if(token!==_audioToken) return; duckBGM(false); };
+
+  a.onerror=()=>{ if(token!==_audioToken) return;
+    const say = async()=>{ if(letter.toUpperCase()==="Z") await speakSolo("zee"); else await speakSolo(letter); duckBGM(false); };
+    duckBGM(true); say();
+  };
+  try{
+    await unlockAudioOnce(); duckBGM(true);
+    try{ await a.play(); }
+    catch(e){ a.load(); await a.play(); }
+  }catch{
+    if(token!==_audioToken) return;
+    duckBGM(true);
+    if(letter.toUpperCase()==="Z") await speakSolo("zee"); else await speakSolo(letter);
+    duckBGM(false);
+  }
 }
 async function playWordReal(word){
   const token=++_audioToken; stopWordAudio();
   const a=new Audio(WORD_SRC(word));
-  a.preload="auto"; _wordPlayer=a;
-  a.onerror=()=>{ if(token!==_audioToken) return; speakSolo(word); };
-  try{ await unlockAudioOnce(); await a.play(); }catch{ if(token!==_audioToken) return; speakSolo(word); }
+  a.preload="auto"; a.setAttribute('playsinline',''); _wordPlayer=a;
+
+  a.onended = ()=>{ if(token!==_audioToken) return; duckBGM(false); };
+
+  a.onerror=()=>{ if(token!==_audioToken) return;
+    const say = async()=>{ await speakSolo(word); duckBGM(false); };
+    duckBGM(true); say();
+  };
+  try{
+    await unlockAudioOnce(); duckBGM(true);
+    try{ await a.play(); }
+    catch(e){ a.load(); await a.play(); }
+  }catch{
+    if(token!==_audioToken) return;
+    duckBGM(true); await speakSolo(word); duckBGM(false);
+  }
 }
 function speakQuestion(letter){ stopAllSpeech(); playLetterReal(letter); }
 
-/* ===== 音效（答對/答錯 + beep 備援） ===== */
+/* ===== 音效（答對/答錯 + beep 備援，含 Duck） ===== */
 let audioCtx=null;
 function ensureAudioCtx(){ if(!audioCtx){const C=window.AudioContext||window.webkitAudioContext; audioCtx=new C();} }
 async function unlockAudioOnce(){
@@ -359,8 +447,24 @@ let correctSound=new Audio("./correct.mp3"), wrongSound=new Audio("./wrong.mp3")
 correctSound.preload="auto"; wrongSound.preload="auto";
 let hasCorrectFile=true, hasWrongFile=true;
 correctSound.onerror=()=>{hasCorrectFile=false}; wrongSound.onerror=()=>{hasWrongFile=false};
-async function playSfxCorrect(){ await unlockAudioOnce(); if(hasCorrectFile){ try{correctSound.pause(); correctSound.currentTime=0; await correctSound.play(); return;}catch{} } beep(true); }
-async function playSfxWrong(){ await unlockAudioOnce(); if(hasWrongFile){ try{wrongSound.pause(); wrongSound.currentTime=0; await wrongSound.play(); return;}catch{} } beep(false); }
+async function playSfxCorrect(){
+  duckBGM(true);
+  await unlockAudioOnce();
+  try{
+    if(hasCorrectFile){ correctSound.pause(); correctSound.currentTime=0; await correctSound.play(); }
+    else{ beep(true); }
+  }catch{ beep(true); }
+  setTimeout(()=>duckBGM(false), 250);
+}
+async function playSfxWrong(){
+  duckBGM(true);
+  await unlockAudioOnce();
+  try{
+    if(hasWrongFile){ wrongSound.pause(); wrongSound.currentTime=0; await wrongSound.play(); }
+    else{ beep(false); }
+  }catch{ beep(false); }
+  setTimeout(()=>duckBGM(false), 300);
+}
 
 /* ===== 連擊 HUD ===== */
 const comboHud = ()=>document.getElementById('comboHud');
@@ -407,7 +511,6 @@ function renderAchievements(){
   box.style.display="block";
 }
 let toastTimer=null;
-// ✅ 修正版：成就解鎖閃亮通知（修掉 ach 拼字錯誤）
 function showUnlockToast(ach){
   if(!isScoredMode) return;
   const el=document.getElementById('unlockToast');
@@ -732,12 +835,13 @@ function buildAlphabetBoard(){
 }
 buildAlphabetBoard();
 
-/* ===== 初始化 ===== */
+/* ===== 初始化：首頁 BGM、排行榜、iOS 聲音門檻 ===== */
 (function init(){
   updateBgmBtn();
   const vol = document.getElementById('bgmVol'); if(vol) vol.value = bgmVol;
-  setBGMTrack('home');   // ★ 首頁預設播放首頁音樂（需使用者互動後方能自動播放）
+  setBGMTrack('home');   // 首頁曲
   switchLB('upper'); renderLeaderboard();
+  showSoundGateIfNeeded();
 })();
 
 /* ===== 模式選擇彈窗 ===== */
@@ -761,6 +865,43 @@ function confirmScoreChoice(){
     unlocked = {}; // 練習不解鎖
   }
   closeScoreModal(); startGame(pendingLetterMode||'upper');
+}
+
+/* ===== iOS 相容：啟用聲音門檻 ===== */
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function showSoundGateIfNeeded(){
+  if (!unlockAudioOnce.done && isIOS()) {
+    document.getElementById('soundGate').style.display = 'flex';
+  }
+}
+async function enableSoundIOS(){
+  try{
+    await unlockAudioOnce();
+    ensureBgmPipeline();
+    if (bgmAudioCtx?.state === 'suspended') await bgmAudioCtx.resume();
+    setBGMVolume(bgmVol);
+    // 預熱一個字母音檔（靜音播放以建立手勢授權）
+    const pre = new Audio(LETTER_SRC('A')); pre.volume = 0; pre.preload='auto';
+    try{ await pre.play(); pre.pause(); pre.currentTime = 0; }catch{}
+  }catch(e){}
+  document.getElementById('soundGate').style.display = 'none';
+  try { await setBGMTrack('home'); await playBGM(); } catch {}
+}
+
+/* ===== BGM 切換（整合管線） ===== */
+async function setBGMTrack(key){
+  currentBgmKey = key;
+  const src = BGM_SOURCES[key] || BGM_SOURCES.home;
+  try { bgmEl.pause(); } catch {}
+  bgmEl.src = src; bgmEl.currentTime = 0;
+
+  ensureBgmPipeline();   // ★ 建立 WebAudio 管線
+  setBGMVolume(bgmVol);  // ★ 同步目前音量到管線
+
+  if (bgmOn) { try { await unlockAudioOnce(); await playBGM(); } catch {} }
 }
 </script>
 </body>
