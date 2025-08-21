@@ -187,7 +187,7 @@
   <div class="line"><span class="icon">🏅</span><span class="text">你獲得了 XXX</span></div>
 </div>
 
-<!-- iOS 聲音啟用門檻（首次點擊授權音訊） -->
+<!-- iOS 聲音啟用門檻 -->
 <div id="soundGate" style="position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:2000;">
   <div style="width:min(520px,92vw);background:#fff;border-radius:16px;padding:16px;box-shadow:0 20px 50px rgba(0,0,0,.35);text-align:center">
     <h3 style="margin:0 0 8px">🔊 啟用聲音</h3>
@@ -249,11 +249,11 @@ const UPPER="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""), LOWER="abcdefghijklmnopqrstu
 
 /* ===== 背景音樂（依模式切換） ===== */
 const BGM_SOURCES = {
-  home:   "./scenery-142705.mp3",          // 首頁
-  upper:  "./scent-of-forest-116193.mp3",  // 大寫
-  lower:  "./midnight-forest-184304.mp3",  // 小寫
-  mixed:  "./mysterious_night-286709.mp3", // 混合
-  extreme:"./mysterious_night-286709.mp3"  // 極限
+  home:   "./scenery-142705.mp3",
+  upper:  "./scent-of-forest-116193.mp3",
+  lower:  "./midnight-forest-184304.mp3",
+  mixed:  "./mysterious_night-286709.mp3",
+  extreme:"./mysterious_night-286709.mp3"
 };
 let bgmEl = new Audio(); bgmEl.loop = true; bgmEl.preload = "auto";
 let bgmOn  = loadLS("az-bgm-on", true);
@@ -261,9 +261,9 @@ let bgmVol = loadLS("az-bgm-vol", 0.35);
 bgmEl.volume = clamp(bgmVol, 0, 1);
 let currentBgmKey = "home";
 
-/* ===== BGM 音量平衡：WebAudio 管線 + 壓縮器 + Ducking ===== */
+/* ===== BGM 音量平衡：WebAudio 管線 + 壓縮器 + Ducking（更柔和避免雜音） ===== */
 let bgmAudioCtx = null, bgmSrcNode = null, bgmGainNode = null, bgmComp = null;
-let duckTargetGain = 0.4;   // 約 -8 dB
+let duckTargetGain = 0.45;   // 較不突兀
 let normalBgmGain = 1.0;
 let isDucked = false;
 function ensureBgmPipeline(){
@@ -278,15 +278,15 @@ function ensureBgmPipeline(){
   bgmComp.threshold.setValueAtTime(-24, bgmAudioCtx.currentTime);
   bgmComp.knee.setValueAtTime(30, bgmAudioCtx.currentTime);
   bgmComp.ratio.setValueAtTime(12, bgmAudioCtx.currentTime);
-  bgmComp.attack.setValueAtTime(0.003, bgmAudioCtx.currentTime);
-  bgmComp.release.setValueAtTime(0.25, bgmAudioCtx.currentTime);
+  bgmComp.attack.setValueAtTime(0.006, bgmAudioCtx.currentTime);   // 放慢避免點聲
+  bgmComp.release.setValueAtTime(0.18, bgmAudioCtx.currentTime);
 
   try{
     if (!bgmSrcNode && bgmEl){
       bgmSrcNode = bgmAudioCtx.createMediaElementSource(bgmEl);
       bgmSrcNode.connect(bgmGainNode).connect(bgmComp).connect(bgmAudioCtx.destination);
     }
-  }catch(e){/* 同一 <audio> 只能建一次 MediaElementSource，若已建立則忽略 */ }
+  }catch(e){}
 }
 function setBGMVolume(v){
   bgmVol = clamp(parseFloat(v)||0, 0, 1);
@@ -296,18 +296,14 @@ function setBGMVolume(v){
   if (bgmGainNode){
     try{
       bgmGainNode.gain.cancelScheduledValues(now);
-      bgmGainNode.gain.setTargetAtTime(bgmVol * (isDucked ? duckTargetGain : normalBgmGain), now, 0.05);
+      bgmGainNode.gain.setTargetAtTime(bgmVol * (isDucked ? duckTargetGain : normalBgmGain), now, 0.08);
     }catch{
       bgmGainNode.gain.value = bgmVol * (isDucked ? duckTargetGain : normalBgmGain);
     }
   }
   const r = document.getElementById('bgmVol'); if(r && Math.abs((+r.value)-bgmVol)>0.001) r.value = bgmVol;
 }
-async function playBGM(){
-  if (!bgmOn) return;
-  ensureBgmPipeline();
-  try { await unlockAudioOnce(); if (bgmAudioCtx?.state === 'suspended') await bgmAudioCtx.resume(); await bgmEl.play(); } catch {}
-}
+async function playBGM(){ if (!bgmOn) return; ensureBgmPipeline(); try { await unlockAudioOnce(); if (bgmAudioCtx?.state === 'suspended') await bgmAudioCtx.resume(); await bgmEl.play(); } catch {} }
 function pauseBGM(reset=false){ try { bgmEl.pause(); if(reset) bgmEl.currentTime = 0; } catch {} }
 function toggleBGM(){ bgmOn = !bgmOn; saveLS("az-bgm-on", bgmOn); updateBgmBtn(); if(bgmOn){ playBGM(); } else { pauseBGM(true); } }
 function updateBgmBtn(){ const b = document.getElementById('bgmToggleBtn'); if (b) b.textContent = (bgmOn ? "🎵 關閉 BGM" : "🎵 開啟 BGM"); }
@@ -319,11 +315,11 @@ function duckBGM(on){
   const target = bgmVol * (on ? duckTargetGain : normalBgmGain);
   try{
     bgmGainNode.gain.cancelScheduledValues(now);
-    bgmGainNode.gain.setTargetAtTime(target, now, on ? 0.03 : 0.08);
+    bgmGainNode.gain.setTargetAtTime(target, now, on ? 0.06 : 0.12); // 更平滑
   }catch{ bgmGainNode.gain.value = target; }
 }
 
-/* ===== iOS 友善：手勢解鎖與同步執行包裝器 ===== */
+/* ===== iOS 友善：手勢解鎖 ===== */
 let gestureArmed = false;
 function armGesture() {
   if (gestureArmed) return;
@@ -335,11 +331,6 @@ function armGesture() {
 window.addEventListener('pointerdown', armGesture, { once: true, passive: true });
 window.addEventListener('touchstart', armGesture, { once: true, passive: true });
 window.addEventListener('keydown', armGesture, { once: true });
-function runInGesture(fn) {
-  if (gestureArmed) { fn(); return; }
-  const h = () => { fn(); window.removeEventListener('pointerup', h, { capture: true }); };
-  window.addEventListener('pointerup', h, { once: true, capture: true });
-}
 
 /* ===== 狀態 ===== */
 let mode="upper",current="",score=0,streak=0,played=0,locked=false;
@@ -352,6 +343,7 @@ let stats={
 let isScoredMode=false, currentPlayerName=null, pendingLetterMode=null;
 let perfectBonusApplied=false;
 let timeLeft=QUESTION_TIME, timerId=null;
+let currentQid = 0; // ★ 題目編號（避免音訊錯位）
 
 /* ===== 語音：Web Speech 備援 ===== */
 let _voiceCache = null, _speakSeq = 0;
@@ -377,7 +369,6 @@ function waitSilence(waitMs = 900){
 }
 function playUtterance(text, rate, mySeq){
   return new Promise(resolve=>{
-    if (mySeq !== _speakSeq) return resolve();
     const u = new SpeechSynthesisUtterance(text);
     u.rate = rate; u.volume = 1;
     const v = _pickVoice(); if (v) u.voice = v;
@@ -387,19 +378,13 @@ function playUtterance(text, rate, mySeq){
 }
 async function speakSolo(text, rate=0.9){
   const my = ++_speakSeq;
-  await waitSilence(900);
-  if (my !== _speakSeq) return;
+  await waitSilence(600);
   await playUtterance(text, rate, my);
 }
 
-/* ===== 真人音檔優先：多路徑容錯 & 替代名稱 ===== */
-
-/* 會嘗試的資料夾（依序） */
+/* ===== 真人音檔優先：多路徑容錯 + 題目綁定 ===== */
 const AUDIO_BASES = ["./sounds/letters/","./sounds/animals/","./audio/","./letters/","./animals/","./"];
-/* 會嘗試的副檔名（依序） */
 const AUDIO_EXTS = ["mp3","wav","m4a"];
-
-/* 動物替代名稱（避免不同教材檔名不一致） */
 const animalAltByLetter = {
   A: ["Ant","Alligator","Antelope"],
   B: ["Bear","Beaver","Buffalo"],
@@ -428,84 +413,53 @@ const animalAltByLetter = {
   Y: ["Yak","Yabby","Yakin"],
   Z: ["Zebra","Zebu"]
 };
-
-/* —— 工具：產生各種候選路徑 —— */
-function buildSources(names, preferAnimals=false){
-  const list = [];
-  const bases = preferAnimals ? AUDIO_BASES : AUDIO_BASES;
-  for(const base of bases){
-    for(const name of names){
-      for(const ext of AUDIO_EXTS){
-        // 只把 letters 放進 letters 夾的時候，會有 base 路徑不對的情形
-        // 但我們全部都嘗試，確保可撈到
-        list.push(`${base}${name}.${ext}`);
-      }
-    }
-  }
-  // 清掉重複
-  return Array.from(new Set(list));
-}
-
-/* —— 字母來源清單（A → 多資料夾、多副檔名） —— */
-function letterSources(letter){
-  const U = String(letter).toUpperCase();
-  const names = [U, U.toLowerCase()];
-  // 只給檔名，不加資料夾；buildSources 會組合各資料夾
-  return buildSources(names, /*preferAnimals*/ false);
-}
-
-/* —— 動物來源清單（含替代名稱） —— */
+function buildSources(names){ const list=[]; for(const base of AUDIO_BASES){ for(const n of names){ for(const ext of AUDIO_EXTS){ list.push(`${base}${n}.${ext}`); } } } return Array.from(new Set(list)); }
+function letterSources(letter){ const U=String(letter).toUpperCase(); return buildSources([U,U.toLowerCase()]); }
 function wordSources(word){
-  const w = String(word);
-  const U = w.toUpperCase();
-  const Cap = w[0].toUpperCase() + w.slice(1).toLowerCase();
-  const L = w[0]?.toUpperCase() || 'A';
-  const alt = animalAltByLetter[L] || [];
-  // 候選名稱：當前題庫單字（大小寫變體） + 替代清單
-  const names = Array.from(new Set([w, Cap, w.toLowerCase(), ...alt]));
-  return buildSources(names, /*preferAnimals*/ true);
+  const w=String(word), Cap=w[0].toUpperCase()+w.slice(1).toLowerCase(), L=w[0]?.toUpperCase()||'A';
+  const alt = animalAltByLetter[L]||[];
+  return buildSources(Array.from(new Set([w,Cap,w.toLowerCase(),...alt])));
 }
-
-/* —— 播放器：不 await，逐一嘗試來源；失敗才退 TTS —— */
 let _letterPlayer=null, _wordPlayer=null;
-function killAudio(a){ if(a){ try{ a.pause(); }catch{} } }
+function killAudio(a){ if(!a) return; try{ a.pause(); a.src=''; }catch{} }
 function stopAllSpeech(){ try{ speechSynthesis.cancel(); }catch{} killAudio(_letterPlayer); killAudio(_wordPlayer); _letterPlayer=null; _wordPlayer=null; }
 
-function tryPlayFromList(list, onEnded, onFail){
-  const a = new Audio(); a.setAttribute('playsinline',''); a.preload='auto'; a.volume=1;
-  let idx = 0, failed = false;
-  function next(){
-    if (idx >= list.length){
-      failed = true;
-      onFail?.();
-      return;
-    }
+function tryPlayFromList(list, qid, onEnded, onFail){
+  // 單實例播放器，避免多重重疊造成雜音
+  const a = new Audio(); a.setAttribute('playsinline',''); a.preload='auto'; a.volume=1; a._qid = qid;
+  let idx = 0, aborted = false;
+
+  const next = () => {
+    if (aborted || qid !== currentQid) return; // 題目已換
+    if (idx >= list.length){ aborted = true; onFail?.(); return; }
     const src = list[idx++];
-    a.onerror = () => { next(); };
-    a.onended = () => { onEnded?.(); };
+    a.onerror = () => { if(qid !== currentQid) return; next(); };
+    a.onended = () => { if(qid !== currentQid) return; onEnded?.(); };
+    // 防止瞬切爆音：先暫停上一段，再設定 src，延 120ms 播放
+    try{ a.pause(); a.currentTime=0; }catch{}
     a.src = src;
-    a.play().catch(()=>{ /* 某些同步錯誤走這支 */ next(); });
-  }
+    setTimeout(()=>{ if(qid !== currentQid) return; a.play().catch(()=>next()); }, 120);
+  };
+
   next();
   return a;
 }
 
-function immediatePlayLetter(letter){
-  stopAllSpeech();
-  duckBGM(true);
+function immediatePlayLetter(letter, qid=currentQid){
+  stopAllSpeech(); duckBGM(true);
   const sources = letterSources(letter);
   _letterPlayer = tryPlayFromList(
-    sources,
+    sources, qid,
     ()=>duckBGM(false),
-    ()=>{ duckBGM(false); const U = String(letter).toUpperCase(); (U==='Z') ? speakSolo('zee') : speakSolo(letter); }
+    ()=>{ duckBGM(false); const U=String(letter).toUpperCase(); (U==='Z') ? speakSolo('zee') : speakSolo(letter); }
   );
 }
 
-function immediatePlayWord(word){
+function immediatePlayWord(word, qid=currentQid){
   duckBGM(true);
   const sources = wordSources(word);
   _wordPlayer = tryPlayFromList(
-    sources,
+    sources, qid,
     ()=>duckBGM(false),
     ()=>{ duckBGM(false); speakSolo(word); }
   );
@@ -539,7 +493,7 @@ async function playSfxCorrect(){
     if(hasCorrectFile){ correctSound.pause(); correctSound.currentTime=0; await correctSound.play(); }
     else{ beep(true); }
   }catch{ beep(true); }
-  setTimeout(()=>duckBGM(false), 250);
+  setTimeout(()=>duckBGM(false), 260);
 }
 async function playSfxWrong(){
   duckBGM(true);
@@ -548,7 +502,7 @@ async function playSfxWrong(){
     if(hasWrongFile){ wrongSound.pause(); wrongSound.currentTime=0; await wrongSound.play(); }
     else{ beep(false); }
   }catch{ beep(false); }
-  setTimeout(()=>duckBGM(false), 300);
+  setTimeout(()=>duckBGM(false), 320);
 }
 
 /* ===== 連擊 HUD ===== */
@@ -556,7 +510,7 @@ const comboHud = ()=>document.getElementById('comboHud');
 function showCombo(){ if(streak>=5){ const el=comboHud(); el.innerHTML = `<span class="flame">🔥</span> +${streak} <span class="flame">🔥</span>`; el.style.display='block'; el.classList.remove('comboPop'); void el.offsetWidth; el.classList.add('comboPop'); } else { hideCombo(); } }
 function hideCombo(){ const el=comboHud(); el.style.display='none'; el.innerHTML=''; }
 
-/* ===== 獎章 ===== */
+/* ===== 獎章（沿用，略） ===== */
 const ACH = [
   {id:"FIRST_CORRECT",icon:"🌱",name:"森林新手",desc:"第一次答對",check:s=>s.correct>=1},
   {id:"REPLAY_USED",  icon:"🔁",name:"勤學不倦",desc:"使用過重播題目",check:s=>s.replayUsed},
@@ -697,7 +651,7 @@ function safeAdvance(delay){
 }
 async function startGame(m){
   await unlockAudioOnce();
-  await setBGMTrack(m);     // 依模式切換 BGM
+  await setBGMTrack(m);
   mode=m; score=0; streak=0; played=0; perfectBonusApplied=false; clearTimer();
   stats={
     correct:0, wrong:0, bestStreak:0,
@@ -717,15 +671,16 @@ function pickLetter(){
   if(mode==="upper") return UPPER[Math.floor(Math.random()*26)];
   if(mode==="lower") return LOWER[Math.floor(Math.random()*26)];
   const pool=(mode==="mixed"||mode==="extreme") ? (Math.random()<0.5?UPPER:LOWER) : UPPER;
-  if(mode==="mixed"||mode==="extreme") return pool[Math.floor(Math.random()*26)];
-  return UPPER[Math.floor(Math.random()*26)];
+  return pool[Math.floor(Math.random()*26)];
 }
 async function startRound(){
   _advanceGuard = false;
-  await waitSilence(300);
+  await waitSilence(250);
   stopAllSpeech();
-  current=pickLetter(); locked=false;
+  currentQid++;                     // ★ 新題目編號
+  const qid = currentQid;
 
+  current=pickLetter(); locked=false;
   const opts=[current]; while(opts.length<3){const c=pickLetter(); if(!opts.includes(c)) opts.push(c);}
   opts.sort(()=>Math.random()-0.5);
   const htmlChoices = opts.map(l=>{
@@ -736,8 +691,8 @@ async function startRound(){
   document.getElementById("flash").textContent="";
   setNumbers();
 
-  // 出題唸題：直接立即播放（使用者手勢後的同輪互動）
-  runInGesture(()=> immediatePlayLetter(current));
+  // 出題唸題（與 qid 綁定，避免錯位）
+  immediatePlayLetter(current, qid);
 
   // 計分模式才啟動倒數；練習模式隱藏
   const timerEl = document.getElementById('timer');
@@ -746,7 +701,8 @@ async function startRound(){
 }
 function replayQuestion(){
   stats.replayUsed = true;
-  runInGesture(()=> immediatePlayLetter(current));
+  // 以當前 qid 重播題目發音，保證對應此題
+  immediatePlayLetter(current, currentQid);
 }
 function setNumbers(){
   const tag = isScoredMode ? "（計分）" : "（練習）";
@@ -755,7 +711,7 @@ function setNumbers(){
     (isScoredMode && currentPlayerName ? ` | 玩家：${currentPlayerName} | 關卡：${tabLabel(mode)}` : ` | 關卡：${tabLabel(mode)}`);
 }
 
-/* ===== 倒數（只在計分模式使用） ===== */
+/* ===== 倒數（只在計分模式使用；切題重置） ===== */
 function startTimer(){ clearTimer(); timeLeft = QUESTION_TIME; renderTimer(); timerId = setInterval(()=>{ timeLeft = Math.max(0, timeLeft - 1); renderTimer(); if(timeLeft<=0){ clearTimer(); timeUp(); } }, 1000); }
 function renderTimer(){ const t = document.getElementById('timer'); t.textContent = `⏱ ${timeLeft}s`; t.classList.toggle('red', timeLeft<=3); }
 function clearTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
@@ -765,9 +721,12 @@ function timeUp(){ if(locked) return; locked=true; clearTimer(); _advanceGuard =
 function basePointsForNext(){ const next = streak + 1; if(next>=8) return 3; if(next>=5) return 2; return 1; }
 function speedBonus(){ return isScoredMode ? Math.floor(timeLeft * 0.5) : 0; }
 
-/* ===== 判題 ===== */
+/* ===== 判題（答題時立即終止上一題所有音訊，避免雜音） ===== */
 async function check(val, el){
   if(locked) return; locked=true; clearTimer(); _advanceGuard = false;
+  // 立即使上一題失效，阻止任何延遲播放
+  currentQid++; stopAllSpeech();
+
   if(val===current){
     const base = basePointsForNext();
     const spd = speedBonus();
@@ -792,6 +751,7 @@ async function check(val, el){
 /* ===== 結束（50 題全對加成 +50；極限關不加） ===== */
 function finishGame(){
   try{ speechSynthesis.cancel(); }catch(e){}
+  currentQid++; stopAllSpeech(); // 終止殘留音訊
   const maxQ = maxQuestionsForMode();
   stats.finishedOnce = true; if(stats.correct===maxQ && stats.wrong===0){ stats.perfectGame = true; }
   if(isScoredMode && !perfectBonusApplied && stats.correct===NORMAL_QUESTIONS && mode!=='extreme'){
@@ -803,24 +763,25 @@ function finishGame(){
   document.getElementById("modeSelect").style.display="block";
   hideCombo();
   openNextModal();
-  setBGMTrack('home'); // 回首頁播放首頁音樂
+  setBGMTrack('home');
 }
 
-/* —— 放棄（兩種模式通用） —— */
+/* —— 放棄（不影響現有功能） —— */
 function openGiveUpModal(){ document.getElementById('giveUpModal').style.display='flex'; }
 function closeGiveUpModal(){ document.getElementById('giveUpModal').style.display='none'; }
 function giveUpGame(){
   try{ speechSynthesis.cancel(); }catch(e){}
+  currentQid++; stopAllSpeech();
   clearTimer();
   document.getElementById("topWrap").style.display="none";
   document.getElementById("modeSelect").style.display="block";
   document.getElementById('giveUpModal').style.display='none';
   document.getElementById("flash").textContent="已放棄本局，回到主選單。";
   hideCombo();
-  setBGMTrack('home'); // 回首頁播放首頁音樂
+  setBGMTrack('home');
 }
 
-/* ===== 慶祝動畫（略同前版） ===== */
+/* ===== 慶祝動畫（沿用） ===== */
 const fxCanvas = document.getElementById("fxCanvas");
 const fxCtx = fxCanvas.getContext("2d");
 function resizeFx(){ fxCanvas.width=innerWidth; fxCanvas.height=innerHeight; }
@@ -913,7 +874,7 @@ function openNextModal(){
 }
 function backToMenu(){ document.getElementById('nextModal').style.display='none'; document.getElementById("modeSelect").style.display="block"; setBGMTrack('home'); }
 
-/* ===== 常駐學習板：點卡片 → 字母（同步）→ 1 秒 → 動物（同步） ===== */
+/* ===== 字母學習板 ===== */
 function buildAlphabetBoard(){
   const board=document.getElementById("alphabetBoard"); board.innerHTML="";
   UPPER.forEach(l=>{
@@ -923,10 +884,8 @@ function buildAlphabetBoard(){
     card.appendChild(mini); card.appendChild(lab);
     card.onclick=()=>{ 
       stats.boardClicks++; stats.boardSet.add(l);
-      runInGesture(() => {
-        immediatePlayLetter(l);
-        setTimeout(()=>{ immediatePlayWord(animalWords[l]); }, 1000);
-      });
+      immediatePlayLetter(l, currentQid); // 同步用現行 qid，不影響出題
+      setTimeout(()=>{ immediatePlayWord(animalWords[l], currentQid); }, 1000);
       tryUnlock();
     };
     board.appendChild(card);
@@ -934,12 +893,11 @@ function buildAlphabetBoard(){
 }
 buildAlphabetBoard();
 
-/* ===== 初始化：首頁 BGM、排行榜、iOS 聲音門檻 ===== */
+/* ===== 初始化 ===== */
 (function init(){
   updateBgmBtn();
   const vol = document.getElementById('bgmVol'); if(vol) vol.value = bgmVol;
-  setBGMTrack('home');   // 首頁曲
-  switchLB('upper'); renderLeaderboard();
+  setBGMTrack('home'); switchLB('upper'); renderLeaderboard();
   showSoundGateIfNeeded();
 })();
 
@@ -983,29 +941,29 @@ async function enableSoundIOS(){
     if (bgmAudioCtx?.state === 'suspended') await bgmAudioCtx.resume();
     setBGMVolume(bgmVol);
 
-    // 預熱：嘗試 A (靜音快速播放)
+    // 預熱：嘗試 A（靜音快速播放）
     for(const src of letterSources('A')){
       try{
         const pre = new Audio(src);
         pre.volume = 0; pre.preload='auto'; pre.setAttribute('playsinline','');
         await pre.play(); pre.pause(); pre.currentTime = 0;
         break;
-      }catch(e){ /* 換下一個副檔名/路徑 */ }
+      }catch(e){}
     }
   }catch(e){}
   document.getElementById('soundGate').style.display = 'none';
   try { await setBGMTrack('home'); await playBGM(); } catch {}
 }
 
-/* ===== BGM 切換（整合管線） ===== */
+/* ===== BGM 切換 ===== */
 async function setBGMTrack(key){
   currentBgmKey = key;
   const src = BGM_SOURCES[key] || BGM_SOURCES.home;
   try { bgmEl.pause(); } catch {}
   bgmEl.src = src; bgmEl.currentTime = 0;
 
-  ensureBgmPipeline();   // 建立 WebAudio 管線
-  setBGMVolume(bgmVol);  // 同步目前音量到管線
+  ensureBgmPipeline();
+  setBGMVolume(bgmVol);
 
   if (bgmOn) { try { await unlockAudioOnce(); await playBGM(); } catch {} }
 }
