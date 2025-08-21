@@ -90,7 +90,9 @@
   .comboPop{ animation: comboPop .7s ease-out; }
   @keyframes comboPop{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}40%{transform:translate(-50%,-50%) scale(1.25);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:.98}}
   @keyframes flameFlicker{0%,100%{transform:translateY(0) rotate(0deg);opacity:.95}50%{transform:translateY(-4px) rotate(-4deg);opacity:1}}
-  #unlockToast{position:fixed; left:50%; top:18px; transform:translateX(-50%) translateY(-40px); z-index:1002; display:none; pointer-events:none; background:linear-gradient(135deg,#fff9e6,#ffffff); border:2px solid #ffd36b; border-radius:16px; padding:10px 14px; box-shadow:0 16px 38px rgba(0,0,0,.18), inset 0 0 0 1px #fff6; font-family:'Baloo 2', cursive; color:#6b4e00;}
+
+  /* 解鎖/偵錯吐司（也拿來顯示音檔失敗資訊） */
+  #unlockToast{position:fixed; left:50%; top:18px; transform:translateX(-50%) translateY(-40px); z-index:1002; display:none; pointer-events:none; background:linear-gradient(135deg,#fff9e6,#ffffff); border:2px solid #ffd36b; border-radius:16px; padding:10px 14px; box-shadow:0 16px 38px rgba(0,0,0,.18), inset 0 0 0 1px #fff6; font-family:'Baloo 2', cursive; color:#6b4e00; white-space:pre-line}
   #unlockToast.show{ display:block; animation:toastSlide .9s ease forwards; }
   #unlockToast .title{font-weight:800; font-size:18px}
   #unlockToast .line{display:flex; gap:8px; align-items:center}
@@ -178,6 +180,7 @@
 <canvas id="fxCanvas"></canvas>
 <div id="comboHud"><span class="flame">🔥</span> +5 <span class="flame">🔥</span></div>
 
+<!-- 成就解鎖 / 音檔失敗 通知 -->
 <div id="unlockToast" aria-live="polite" role="status">
   <div class="shine"></div>
   <div class="title">成就解鎖！</div>
@@ -283,9 +286,7 @@ function ensureBgmPipeline(){
       bgmSrcNode = bgmAudioCtx.createMediaElementSource(bgmEl);
       bgmSrcNode.connect(bgmGainNode).connect(bgmComp).connect(bgmAudioCtx.destination);
     }
-  }catch(e){
-    // 同一 <audio> 僅能建立一次 MediaElementSource，若已建立直接忽略
-  }
+  }catch(e){/* 同一 <audio> 只能建一次 MediaElementSource，若已建立則忽略 */ }
 }
 function setBGMVolume(v){
   bgmVol = clamp(parseFloat(v)||0, 0, 1);
@@ -334,7 +335,7 @@ let isScoredMode=false, currentPlayerName=null, pendingLetterMode=null;
 let perfectBonusApplied=false;
 let timeLeft=QUESTION_TIME, timerId=null;
 
-/* ===== 語音：單通道 + 防雜音（Web Speech API 備援） ===== */
+/* ===== 語音：Web Speech 備援 ===== */
 let _voiceCache = null, _speakSeq = 0;
 function _pickVoice(){
   if (_voiceCache) return _voiceCache;
@@ -373,57 +374,76 @@ async function speakSolo(text, rate=0.9){
   await playUtterance(text, rate, my);
 }
 
-/* ===== 真人音檔優先：字母 + 動物單字（Duck BGM） ===== */
+/* ===== 真人音檔優先（mp3 → wav 都支援）＋ Duck BGM ===== */
 let _letterPlayer=null, _wordPlayer=null, _audioToken=0;
-const LETTER_SRC = L => `./sounds/letters/${L.toUpperCase()}.mp3`;
-const WORD_SRC   = w => `./sounds/animals/${w}.mp3`;
-
 function stopLetterAudio(){ if(_letterPlayer){ try{ _letterPlayer.pause(); }catch{} _letterPlayer.src=""; _letterPlayer=null; } }
 function stopWordAudio(){ if(_wordPlayer){ try{ _wordPlayer.pause(); }catch{} _wordPlayer.src=""; _wordPlayer=null; } }
 function stopAllSpeech(){ try{ speechSynthesis.cancel(); }catch{} stopLetterAudio(); stopWordAudio(); }
 
+// 來源清單：優先 mp3，失敗再 wav
+function letterSources(L){
+  const U = L.toUpperCase();
+  return [`./sounds/letters/${U}.mp3`, `./sounds/letters/${U}.wav`];
+}
+function wordSources(w){
+  return [`./sounds/animals/${w}.mp3`, `./sounds/animals/${w}.wav`];
+}
+
+// 偵錯吐司：兩種副檔名都失敗時提示實際嘗試過的路徑
+function showAudioFailToast(label, triedList){
+  const el = document.getElementById('unlockToast');
+  if(!el) return;
+  el.querySelector('.title').textContent = '音檔讀取失敗';
+  el.querySelector('.icon').textContent = '🔇';
+  el.querySelector('.text').textContent = `${label}\n${triedList.join('  →  ')}`;
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 1800);
+}
+
+// 嘗試依序播放一串來源；成功即回傳 true；全失敗回傳 false
+async function tryPlaySources(srcList, {volume=1, onended} = {}){
+  for(const src of srcList){
+    try{
+      const a = new Audio(src);
+      a.preload = 'auto';
+      a.setAttribute('playsinline','');
+      a.crossOrigin = 'anonymous';
+      a.volume = volume;
+      if(onended) a.onended = onended;
+
+      await unlockAudioOnce();
+      duckBGM(true);
+      try{
+        await a.play();
+        a.onended = ()=>{ duckBGM(false); onended && onended(); };
+        return true;
+      }catch(e){
+        try{ a.load(); await a.play(); a.onended = ()=>{ duckBGM(false); onended && onended(); }; return true; }catch{}
+      }
+    }catch(e){}
+  }
+  duckBGM(false);
+  return false;
+}
+
 async function playLetterReal(letter){
-  const token=++_audioToken; stopLetterAudio();
-  const a=new Audio(LETTER_SRC(letter));
-  a.preload="auto"; a.setAttribute('playsinline',''); _letterPlayer=a;
-
-  a.onended = ()=>{ if(token!==_audioToken) return; duckBGM(false); };
-
-  a.onerror=()=>{ if(token!==_audioToken) return;
-    const say = async()=>{ if(letter.toUpperCase()==="Z") await speakSolo("zee"); else await speakSolo(letter); duckBGM(false); };
-    duckBGM(true); say();
-  };
-  try{
-    await unlockAudioOnce(); duckBGM(true);
-    try{ await a.play(); }
-    catch(e){ a.load(); await a.play(); }
-  }catch{
-    if(token!==_audioToken) return;
-    duckBGM(true);
-    if(letter.toUpperCase()==="Z") await speakSolo("zee"); else await speakSolo(letter);
-    duckBGM(false);
-  }
+  stopAllSpeech();
+  const label = `字母音檔：${letter.toUpperCase()}`;
+  const ok = await tryPlaySources(letterSources(letter), {volume:1});
+  if(ok) return;
+  showAudioFailToast(label, letterSources(letter));
+  if(letter.toUpperCase()==='Z'){ await speakSolo('zee'); } else { await speakSolo(letter); }
 }
+
 async function playWordReal(word){
-  const token=++_audioToken; stopWordAudio();
-  const a=new Audio(WORD_SRC(word));
-  a.preload="auto"; a.setAttribute('playsinline',''); _wordPlayer=a;
-
-  a.onended = ()=>{ if(token!==_audioToken) return; duckBGM(false); };
-
-  a.onerror=()=>{ if(token!==_audioToken) return;
-    const say = async()=>{ await speakSolo(word); duckBGM(false); };
-    duckBGM(true); say();
-  };
-  try{
-    await unlockAudioOnce(); duckBGM(true);
-    try{ await a.play(); }
-    catch(e){ a.load(); await a.play(); }
-  }catch{
-    if(token!==_audioToken) return;
-    duckBGM(true); await speakSolo(word); duckBGM(false);
-  }
+  stopAllSpeech();
+  const label = `動物音檔：${word}`;
+  const ok = await tryPlaySources(wordSources(word), {volume:1});
+  if(ok) return;
+  showAudioFailToast(label, wordSources(word));
+  await speakSolo(word);
 }
+
 function speakQuestion(letter){ stopAllSpeech(); playLetterReal(letter); }
 
 /* ===== 音效（答對/答錯 + beep 備援，含 Duck） ===== */
@@ -514,6 +534,7 @@ let toastTimer=null;
 function showUnlockToast(ach){
   if(!isScoredMode) return;
   const el=document.getElementById('unlockToast');
+  el.querySelector('.title').textContent='成就解鎖！';
   el.querySelector('.icon').textContent=ach.icon||'🏅';
   el.querySelector('.text').textContent=`「${ach.name}」`;
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
@@ -611,7 +632,7 @@ function safeAdvance(delay){
 }
 async function startGame(m){
   await unlockAudioOnce();
-  await setBGMTrack(m);     // ★ 依模式切換 BGM
+  await setBGMTrack(m);     // 依模式切換 BGM
   mode=m; score=0; streak=0; played=0; perfectBonusApplied=false; clearTimer();
   stats={
     correct:0, wrong:0, bestStreak:0,
@@ -706,7 +727,7 @@ function finishGame(){
   document.getElementById("modeSelect").style.display="block";
   hideCombo();
   openNextModal();
-  setBGMTrack('home'); // ★ 回首頁播放首頁音樂
+  setBGMTrack('home'); // 回首頁播放首頁音樂
 }
 
 /* —— 放棄（兩種模式通用） —— */
@@ -720,7 +741,7 @@ function giveUpGame(){
   document.getElementById('giveUpModal').style.display='none';
   document.getElementById("flash").textContent="已放棄本局，回到主選單。";
   hideCombo();
-  setBGMTrack('home'); // ★ 回首頁播放首頁音樂
+  setBGMTrack('home'); // 回首頁播放首頁音樂
 }
 
 /* ===== 慶祝動畫 ===== */
@@ -816,7 +837,7 @@ function openNextModal(){
 }
 function backToMenu(){ document.getElementById('nextModal').style.display='none'; document.getElementById("modeSelect").style.display="block"; setBGMTrack('home'); }
 
-/* ===== 學習板：點卡片 → 真人字母 → 1 秒 → 真人動物（備援 TTS） ===== */
+/* ===== 常駐學習板：點卡片 → 真人字母 → 1 秒 → 真人動物（備援 TTS） ===== */
 function buildAlphabetBoard(){
   const board=document.getElementById("alphabetBoard"); board.innerHTML="";
   UPPER.forEach(l=>{
@@ -883,9 +904,16 @@ async function enableSoundIOS(){
     ensureBgmPipeline();
     if (bgmAudioCtx?.state === 'suspended') await bgmAudioCtx.resume();
     setBGMVolume(bgmVol);
-    // 預熱一個字母音檔（靜音播放以建立手勢授權）
-    const pre = new Audio(LETTER_SRC('A')); pre.volume = 0; pre.preload='auto';
-    try{ await pre.play(); pre.pause(); pre.currentTime = 0; }catch{}
+
+    // 預熱：嘗試 A.mp3 / A.wav 任一能播即可（靜音快速播放）
+    for(const src of letterSources('A')){
+      try{
+        const pre = new Audio(src);
+        pre.volume = 0; pre.preload='auto'; pre.setAttribute('playsinline','');
+        await pre.play(); pre.pause(); pre.currentTime = 0;
+        break;
+      }catch(e){ /* 換下一個副檔名 */ }
+    }
   }catch(e){}
   document.getElementById('soundGate').style.display = 'none';
   try { await setBGMTrack('home'); await playBGM(); } catch {}
@@ -898,8 +926,8 @@ async function setBGMTrack(key){
   try { bgmEl.pause(); } catch {}
   bgmEl.src = src; bgmEl.currentTime = 0;
 
-  ensureBgmPipeline();   // ★ 建立 WebAudio 管線
-  setBGMVolume(bgmVol);  // ★ 同步目前音量到管線
+  ensureBgmPipeline();   // 建立 WebAudio 管線
+  setBGMVolume(bgmVol);  // 同步目前音量到管線
 
   if (bgmOn) { try { await unlockAudioOnce(); await playBGM(); } catch {} }
 }
