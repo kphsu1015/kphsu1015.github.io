@@ -91,7 +91,7 @@
   @keyframes comboPop{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}40%{transform:translate(-50%,-50%) scale(1.25);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:.98}}
   @keyframes flameFlicker{0%,100%{transform:translateY(0) rotate(0deg);opacity:.95}50%{transform:translateY(-4px) rotate(-4deg);opacity:1}}
 
-  /* 解鎖/偵錯吐司（也拿來顯示音檔失敗資訊） */
+  /* 成就解鎖吐司（保留；僅移除錯誤吐司行為） */
   #unlockToast{position:fixed; left:50%; top:18px; transform:translateX(-50%) translateY(-40px); z-index:1002; display:none; pointer-events:none; background:linear-gradient(135deg,#fff9e6,#ffffff); border:2px solid #ffd36b; border-radius:16px; padding:10px 14px; box-shadow:0 16px 38px rgba(0,0,0,.18), inset 0 0 0 1px #fff6; font-family:'Baloo 2', cursive; color:#6b4e00; white-space:pre-line}
   #unlockToast.show{ display:block; animation:toastSlide .9s ease forwards; }
   #unlockToast .title{font-weight:800; font-size:18px}
@@ -180,7 +180,7 @@
 <canvas id="fxCanvas"></canvas>
 <div id="comboHud"><span class="flame">🔥</span> +5 <span class="flame">🔥</span></div>
 
-<!-- 成就解鎖 / 音檔失敗 通知 -->
+<!-- 保留：成就解鎖通知 -->
 <div id="unlockToast" aria-live="polite" role="status">
   <div class="shine"></div>
   <div class="title">成就解鎖！</div>
@@ -375,7 +375,7 @@ async function speakSolo(text, rate=0.9){
 }
 
 /* ===== 真人音檔優先（mp3 → wav 都支援）＋ Duck BGM ===== */
-let _letterPlayer=null, _wordPlayer=null, _audioToken=0;
+let _letterPlayer=null, _wordPlayer=null;
 function stopLetterAudio(){ if(_letterPlayer){ try{ _letterPlayer.pause(); }catch{} _letterPlayer.src=""; _letterPlayer=null; } }
 function stopWordAudio(){ if(_wordPlayer){ try{ _wordPlayer.pause(); }catch{} _wordPlayer.src=""; _wordPlayer=null; } }
 function stopAllSpeech(){ try{ speechSynthesis.cancel(); }catch{} stopLetterAudio(); stopWordAudio(); }
@@ -389,16 +389,8 @@ function wordSources(w){
   return [`./sounds/animals/${w}.mp3`, `./sounds/animals/${w}.wav`];
 }
 
-// 偵錯吐司：兩種副檔名都失敗時提示實際嘗試過的路徑
-function showAudioFailToast(label, triedList){
-  const el = document.getElementById('unlockToast');
-  if(!el) return;
-  el.querySelector('.title').textContent = '音檔讀取失敗';
-  el.querySelector('.icon').textContent = '🔇';
-  el.querySelector('.text').textContent = `${label}\n${triedList.join('  →  ')}`;
-  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'), 1800);
-}
+// 👉 重要：刪除音檔錯誤吐司（不再顯示）——保留函式但不做任何事
+function showAudioFailToast(label, triedList){ /* no-op by request */ }
 
 // 嘗試依序播放一串來源；成功即回傳 true；全失敗回傳 false
 async function tryPlaySources(srcList, {volume=1, onended} = {}){
@@ -428,19 +420,17 @@ async function tryPlaySources(srcList, {volume=1, onended} = {}){
 
 async function playLetterReal(letter){
   stopAllSpeech();
-  const label = `字母音檔：${letter.toUpperCase()}`;
   const ok = await tryPlaySources(letterSources(letter), {volume:1});
   if(ok) return;
-  showAudioFailToast(label, letterSources(letter));
+  // 失敗：不出錯誤吐司，改用 TTS 備援
   if(letter.toUpperCase()==='Z'){ await speakSolo('zee'); } else { await speakSolo(letter); }
 }
 
 async function playWordReal(word){
   stopAllSpeech();
-  const label = `動物音檔：${word}`;
   const ok = await tryPlaySources(wordSources(word), {volume:1});
   if(ok) return;
-  showAudioFailToast(label, wordSources(word));
+  // 失敗：不出錯誤吐司，改用 TTS 備援
   await speakSolo(word);
 }
 
