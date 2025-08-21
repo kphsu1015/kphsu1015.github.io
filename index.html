@@ -91,7 +91,7 @@
   @keyframes comboPop{0%{transform:translate(-50%,-50%) scale(.6);opacity:0}40%{transform:translate(-50%,-50%) scale(1.25);opacity:1}100%{transform:translate(-50%,-50%) scale(1);opacity:.98}}
   @keyframes flameFlicker{0%,100%{transform:translateY(0) rotate(0deg);opacity:.95}50%{transform:translateY(-4px) rotate(-4deg);opacity:1}}
 
-  /* 成就解鎖吐司（保留；僅移除錯誤吐司行為） */
+  /* 成就解鎖吐司 */
   #unlockToast{position:fixed; left:50%; top:18px; transform:translateX(-50%) translateY(-40px); z-index:1002; display:none; pointer-events:none; background:linear-gradient(135deg,#fff9e6,#ffffff); border:2px solid #ffd36b; border-radius:16px; padding:10px 14px; box-shadow:0 16px 38px rgba(0,0,0,.18), inset 0 0 0 1px #fff6; font-family:'Baloo 2', cursive; color:#6b4e00; white-space:pre-line}
   #unlockToast.show{ display:block; animation:toastSlide .9s ease forwards; }
   #unlockToast .title{font-weight:800; font-size:18px}
@@ -180,7 +180,7 @@
 <canvas id="fxCanvas"></canvas>
 <div id="comboHud"><span class="flame">🔥</span> +5 <span class="flame">🔥</span></div>
 
-<!-- 保留：成就解鎖通知 -->
+<!-- 成就解鎖通知 -->
 <div id="unlockToast" aria-live="polite" role="status">
   <div class="shine"></div>
   <div class="title">成就解鎖！</div>
@@ -323,6 +323,24 @@ function duckBGM(on){
   }catch{ bgmGainNode.gain.value = target; }
 }
 
+/* ===== iOS 友善：手勢解鎖與同步執行包裝器 ===== */
+let gestureArmed = false;
+function armGesture() {
+  if (gestureArmed) return;
+  gestureArmed = true;
+  unlockAudioOnce();
+  ensureBgmPipeline();
+  try { if (bgmAudioCtx?.state === 'suspended') bgmAudioCtx.resume(); } catch {}
+}
+window.addEventListener('pointerdown', armGesture, { once: true, passive: true });
+window.addEventListener('touchstart', armGesture, { once: true, passive: true });
+window.addEventListener('keydown', armGesture, { once: true });
+function runInGesture(fn) {
+  if (gestureArmed) { fn(); return; }
+  const h = () => { fn(); window.removeEventListener('pointerup', h, { capture: true }); };
+  window.addEventListener('pointerup', h, { once: true, capture: true });
+}
+
 /* ===== 狀態 ===== */
 let mode="upper",current="",score=0,streak=0,played=0,locked=false;
 let stats={
@@ -374,67 +392,35 @@ async function speakSolo(text, rate=0.9){
   await playUtterance(text, rate, my);
 }
 
-/* ===== 真人音檔優先（mp3 → wav 都支援）＋ Duck BGM ===== */
+/* ===== 真人音檔優先（同步立即播放 mp3→wav；失敗退 TTS） ===== */
 let _letterPlayer=null, _wordPlayer=null;
-function stopLetterAudio(){ if(_letterPlayer){ try{ _letterPlayer.pause(); }catch{} _letterPlayer.src=""; _letterPlayer=null; } }
-function stopWordAudio(){ if(_wordPlayer){ try{ _wordPlayer.pause(); }catch{} _wordPlayer.src=""; _wordPlayer=null; } }
+function stopLetterAudio(){ if(_letterPlayer){ try{ _letterPlayer.pause(); }catch{} _letterPlayer=null; } }
+function stopWordAudio(){ if(_wordPlayer){ try{ _wordPlayer.pause(); }catch{} _wordPlayer=null; } }
 function stopAllSpeech(){ try{ speechSynthesis.cancel(); }catch{} stopLetterAudio(); stopWordAudio(); }
+function letterSources(L){ const U=L.toUpperCase(); return [`./sounds/letters/${U}.mp3`, `./sounds/letters/${U}.wav`]; }
+function wordSources(w){ return [`./sounds/animals/${w}.mp3`, `./sounds/animals/${w}.wav`]; }
 
-// 來源清單：優先 mp3，失敗再 wav
-function letterSources(L){
-  const U = L.toUpperCase();
-  return [`./sounds/letters/${U}.mp3`, `./sounds/letters/${U}.wav`];
-}
-function wordSources(w){
-  return [`./sounds/animals/${w}.mp3`, `./sounds/animals/${w}.wav`];
-}
-
-// 👉 重要：刪除音檔錯誤吐司（不再顯示）——保留函式但不做任何事
-function showAudioFailToast(label, triedList){ /* no-op by request */ }
-
-// 嘗試依序播放一串來源；成功即回傳 true；全失敗回傳 false
-async function tryPlaySources(srcList, {volume=1, onended} = {}){
-  for(const src of srcList){
-    try{
-      const a = new Audio(src);
-      a.preload = 'auto';
-      a.setAttribute('playsinline','');
-      a.crossOrigin = 'anonymous';
-      a.volume = volume;
-      if(onended) a.onended = onended;
-
-      await unlockAudioOnce();
-      duckBGM(true);
-      try{
-        await a.play();
-        a.onended = ()=>{ duckBGM(false); onended && onended(); };
-        return true;
-      }catch(e){
-        try{ a.load(); await a.play(); a.onended = ()=>{ duckBGM(false); onended && onended(); }; return true; }catch{}
-      }
-    }catch(e){}
-  }
-  duckBGM(false);
-  return false;
-}
-
-async function playLetterReal(letter){
+// 立即嘗試播放（不 await），保持在使用者手勢同步階段
+function immediatePlayLetter(letter){
   stopAllSpeech();
-  const ok = await tryPlaySources(letterSources(letter), {volume:1});
-  if(ok) return;
-  // 失敗：不出錯誤吐司，改用 TTS 備援
-  if(letter.toUpperCase()==='Z'){ await speakSolo('zee'); } else { await speakSolo(letter); }
+  const U = letter.toUpperCase();
+  const s = letterSources(U);
+  duckBGM(true);
+  const a = new Audio(); a.setAttribute('playsinline',''); a.preload='auto'; a.volume = 1;
+  a.onended = () => duckBGM(false);
+  _letterPlayer = a;
+  a.src = s[0];
+  a.play().catch(()=>{ a.src = s[1]; a.play().catch(()=>{ duckBGM(false); if(U==='Z') speakSolo('zee'); else speakSolo(letter); }); });
 }
-
-async function playWordReal(word){
-  stopAllSpeech();
-  const ok = await tryPlaySources(wordSources(word), {volume:1});
-  if(ok) return;
-  // 失敗：不出錯誤吐司，改用 TTS 備援
-  await speakSolo(word);
+function immediatePlayWord(word){
+  const s = wordSources(word);
+  duckBGM(true);
+  const a = new Audio(); a.setAttribute('playsinline',''); a.preload='auto'; a.volume = 1;
+  a.onended = () => duckBGM(false);
+  _wordPlayer = a;
+  a.src = s[0];
+  a.play().catch(()=>{ a.src = s[1]; a.play().catch(()=>{ duckBGM(false); speakSolo(word); }); });
 }
-
-function speakQuestion(letter){ stopAllSpeech(); playLetterReal(letter); }
 
 /* ===== 音效（答對/答錯 + beep 備援，含 Duck） ===== */
 let audioCtx=null;
@@ -554,7 +540,7 @@ function switchLB(m){
   renderLeaderboard();
 }
 function trophySVG(kind){
-  const fill = kind==='gold' ? '#d4af37' : kind==='silver' ? '#c0c0c0' : kind==='bronze' ? '#cd7f32' : '#aaa';
+  const fill = kind==='gold' ? '#d4af37' : kind==='silver' ? '#c0c0c0' : '#cd7f32';
   return `<svg class="svgTrophy" viewBox="0 0 24 24" aria-hidden="true"><path fill="${fill}" d="M8 3h8v2h3a1 1 0 0 1 1 1v1a5 5 0 0 1-5 5h-1.06A4 4 0 0 1 12 14a4 4 0 0 1-1.94-1H9a5 5 0 0 1-5-5V6a1 1 0 0 1 1-1h3V3zm10 3h-2v1a3 3 0 0 0 3-3v2a3 3 0 0 1-1 0zM6 6H4a3 3 0 0 0 3 3V6H6zm5 11h2a5 5 0 0 0 4.33 2.5H7.67A5 5 0 0 0 11 17z"/></svg>`;
 }
 function rowRankClass(i){ if(i===0) return 'rank1'; if(i===1) return 'rank2'; if(i===2) return 'rank3'; return ''; }
@@ -659,9 +645,15 @@ async function startRound(){
   }).join("");
   document.getElementById("gameArea").innerHTML = `<div id="questionLetter"></div>` + htmlChoices;
   document.getElementById("flash").textContent="";
-  setNumbers(); speakQuestion(current); startTimer();
+  setNumbers();
+  // 出題唸題：直接立即播放（此時通常仍在用戶手勢後的同輪互動）
+  runInGesture(()=> immediatePlayLetter(current));
+  startTimer();
 }
-function replayQuestion(){ stats.replayUsed = true; speakQuestion(current); }
+function replayQuestion(){
+  stats.replayUsed = true;
+  runInGesture(()=> immediatePlayLetter(current));
+}
 function setNumbers(){
   const tag = isScoredMode ? "（計分）" : "（練習）";
   document.getElementById("scoreBoard").textContent =
@@ -675,7 +667,7 @@ function renderTimer(){ const t = document.getElementById('timer'); t.textConten
 function clearTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
 function timeUp(){ if(locked) return; locked=true; clearTimer(); _advanceGuard = false; stats.wrong++; streak=0; hideCombo(); document.getElementById("flash").textContent=`⌛ 時間到！此題不計分`; try{ playSfxWrong(); }catch(e){} safeAdvance(900); setTimeout(()=>safeAdvance(0), 1500); }
 
-/* ===== 計分規則 ===== */
+/* ===== 計分規則（8 起 3 分；加計超速獎勵） ===== */
 function basePointsForNext(){ const next = streak + 1; if(next>=8) return 3; if(next>=5) return 2; return 1; }
 function speedBonus(){ return Math.floor(timeLeft * 0.5); }
 
@@ -734,7 +726,7 @@ function giveUpGame(){
   setBGMTrack('home'); // 回首頁播放首頁音樂
 }
 
-/* ===== 慶祝動畫 ===== */
+/* ===== 慶祝動畫（略同前版） ===== */
 const fxCanvas = document.getElementById("fxCanvas");
 const fxCtx = fxCanvas.getContext("2d");
 function resizeFx(){ fxCanvas.width=innerWidth; fxCanvas.height=innerHeight; }
@@ -827,7 +819,7 @@ function openNextModal(){
 }
 function backToMenu(){ document.getElementById('nextModal').style.display='none'; document.getElementById("modeSelect").style.display="block"; setBGMTrack('home'); }
 
-/* ===== 常駐學習板：點卡片 → 真人字母 → 1 秒 → 真人動物（備援 TTS） ===== */
+/* ===== 常駐學習板：點卡片 → 字母（同步）→ 1 秒 → 動物（同步） ===== */
 function buildAlphabetBoard(){
   const board=document.getElementById("alphabetBoard"); board.innerHTML="";
   UPPER.forEach(l=>{
@@ -835,10 +827,12 @@ function buildAlphabetBoard(){
     const mini=document.createElement("div"); mini.className="mini"; mini.textContent=animalEmoji[l]||"🫧";
     const lab=document.createElement("div"); lab.className="lab"; lab.innerHTML=`<div class="l">${l}</div><div class="a">${animalWords[l]}</div>`;
     card.appendChild(mini); card.appendChild(lab);
-    card.onclick=async ()=>{ 
+    card.onclick=()=>{ 
       stats.boardClicks++; stats.boardSet.add(l);
-      await playLetterReal(l);
-      setTimeout(()=>{ playWordReal(animalWords[l]); }, 1000);
+      runInGesture(() => {
+        immediatePlayLetter(l);
+        setTimeout(()=>{ immediatePlayWord(animalWords[l]); }, 1000);
+      });
       tryUnlock();
     };
     board.appendChild(card);
