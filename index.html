@@ -732,7 +732,11 @@ function playListOn(el, srcList, qid, onEnded, onFail){
     hardStop(el);
     el.volume = 1; el.muted = true; el.src = src;
 
-    const fastUnmute = ()=>{ if(killed || qid!==currentQid) return; setTimeout(()=>{ if(!killed && qid===currentQid){ el.muted=false; } }, 18); };
+    // 快速解除靜音（原 18ms → 12ms）
+    const fastUnmute = ()=>{ 
+      if(killed || qid!==currentQid) return; 
+      setTimeout(()=>{ if(!killed && qid===currentQid){ el.muted=false; } }, 12);
+    };
 
     const tryStart = ()=>{
       if(killed || qid!==currentQid || started) return;
@@ -903,7 +907,7 @@ function switchLB(m){
 }
 function trophySVG(kind){
   const fill = kind==='gold' ? '#d4af37' : kind==='silver' ? '#c0c0c0' : '#cd7f32';
-  return `<svg class="svgTrophy" viewBox="0 0 24 24" aria-hidden="true"><path fill="${fill}" d="M8 3h8v2h3a1 1 0 0 1 1 1v1a5 5 0 0 1-5 5h-1.06A4 4 0 0 1 12 14a4 4 0 0 1-1.94-1H9a5 5 0 0 1-5-5V6a1 1 0  0 1 1-1h3V3zm10 3h-2v1a3 3 0 0 0 3-3v2a3 3 0 0 1-1 0zM6 6H4a3 3 0 0 0 3 3V6H6zm5 11h2a5 5 0 0 0 4.33 2.5H7.67A5 5 0  0 0 11 17z"/></svg>`;
+  return `<svg class="svgTrophy" viewBox="0 0 24 24" aria-hidden="true"><path fill="${fill}" d="M8 3h8v2h3a1 1 0 0 1 1 1v1a5 5 0 0 1-5 5h-1.06A4 4 0 0 1 12 14a4 4 0  0 1-1.94-1H9a5 5 0  0 1-5-5V6a1 1 0  0 1 1-1h3V3zm10 3h-2v1a3 3 0 0 0 3-3v2a3 3 0 0 1-1 0zM6 6H4a3 3 0 0 0 3 3V6H6zm5 11h2a5 5 0 0 0 4.33 2.5H7.67A5 5 0  0 0 11 17z"/></svg>`;
 }
 function rowRankClass(i){ if(i===0) return 'rank1'; if(i===1) return 'rank2'; if(i===2) return 'rank3'; return ''; }
 function badgesFromUnlocked(unl){ const order = ACH.map(a=>a.id); return order.filter(id=>unl[id]).map(id => ACH.find(a=>a.id===id).icon); }
@@ -989,7 +993,8 @@ function pickLetter(){
 }
 async function startRound(){
   cancelAdvance(); cancelTTS(); stopAllSpeech();
-  await new Promise(r=>setTimeout(r, 8)); // iOS 首音更快（40→8ms）
+  // iOS 首音超低延遲（原 8ms → 4ms）
+  await new Promise(r=>setTimeout(r, 4));
 
   currentQid++;
   const qid = currentQid;
@@ -1186,7 +1191,7 @@ function openNextModal(){
 }
 function backToMenu(){ document.getElementById('nextModal').style.display='none'; document.getElementById("modeSelect").style.display="block"; document.getElementById("alphabetBoardWrap").style.display = "block"; setBGMTrack('home'); saveView('menu'); }
 
-/* 字母學習板（點字母→1 秒後動物） */
+/* 字母學習板（點字母→0.8 秒後動物） */
 function buildAlphabetBoard(){
   const board=document.getElementById("alphabetBoard"); board.innerHTML="";
   UPPER.forEach(l=>{
@@ -1197,7 +1202,8 @@ function buildAlphabetBoard(){
     card.onclick=()=>{ 
       stats.boardClicks++; stats.boardSet.add(l);
       immediatePlayLetter(l, currentQid);
-      setTimeout(()=>{ immediatePlayWord(animalWords[l], currentQid); }, 1000);
+      // 字母後 800ms 播動物（原 1000ms → 800ms）
+      setTimeout(()=>{ immediatePlayWord(animalWords[l], currentQid); }, 800);
       tryUnlock();
     };
     board.appendChild(card);
