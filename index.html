@@ -149,6 +149,7 @@
     position:relative; width:min(720px,92vw); text-align:center; padding:20px 18px;
     background:linear-gradient(180deg,#fffef7,#fff5dc);
     border:1px solid #eadfc6; border-radius:22px; box-shadow:0 30px 70px rgba(0,0,0,.35), inset 0 0 0 2px #fff9;
+    z-index: 5; /* 讓卡片永遠蓋在月亮/大樹上面 */
   }
   .wel-title{
     font-family:'Baloo 2', cursive; font-weight:900; font-size: clamp(28px, 6vw, 48px);
@@ -163,7 +164,7 @@
   .leaf{ position:absolute; top:-50px; font-size:24px; animation: fall linear forwards; }
   @keyframes fall{ to { transform: translateY(110vh) rotate(360deg); opacity:0; } }
 
-  /* 歡迎頁左上：吉卜力風上弦月（放大 2 倍） */
+  /* 歡迎頁左上：吉卜力風上弦月 */
   .wel-moon{
     position:absolute; left:18px; top:14px; width:280px; height:280px;
     pointer-events:none; user-select:none; z-index:1;
@@ -211,7 +212,7 @@
   }
   #homeOwl:hover{ filter:brightness(1.05) }
 
-  /* ====== 右側大樹（吉卜力風）— 歡迎頁 & 主場景共用 ====== */
+  /* 右側大樹（吉卜力風） */
   .wel-tree, .scene-tree{
     position:fixed; right:-2vw; bottom:-1.5vh;
     width:clamp(220px, 26vw, 460px); height:clamp(360px, 60vh, 820px);
@@ -255,6 +256,42 @@
     bottom:34vh; width:28vw; height:18vh;
     background:radial-gradient(70% 60% at 70% 60%, rgba(20,40,30,.22), transparent 70%);
     filter: blur(10px);
+  }
+
+  /* === iPhone 友善尺寸（避免遮住「進入森林」）=== */
+  @media (max-width: 480px) {
+    .wel-moon{
+      width:150px;
+      height:150px;
+      left:8px;
+      top:8px;
+    }
+    .wel-moon .moon-glow{ inset:-38px; }
+
+    .wel-tree{
+      width: 40vw;
+      height: 44vh;
+      right: -8vw;
+      bottom: -2vh;
+    }
+    .wel-tree::before{
+      width: 5.2vw;
+      height: 58%;
+      right: 12vw;
+    }
+    .wel-tree::after{
+      width: 50vw;
+      height: 22vh;
+      right: 2vw;
+      bottom: 42%;
+    }
+    .wel-card{ padding-bottom: 28px; }
+  }
+  /* 超小螢幕或較矮螢幕再縮一級 */
+  @media (max-width: 380px), (max-height: 700px) {
+    .wel-moon{ width:130px; height:130px; left:6px; top:6px; }
+    .wel-tree{ width: 36vw; height: 40vh; right: -10vw; }
+    .wel-tree::after{ width: 46vw; height: 20vh; bottom: 44%; }
   }
 </style>
 </head>
@@ -497,7 +534,7 @@ function goHomeFromOwl(){
   }
   try{ speechSynthesis.cancel(); }catch(e){}
   stopAllSpeech(); clearTimer(); cancelAdvance();
-  document.getElementById("topWrap").style.display='none';
+  document.getElementById("topWrap").style.display="none";
   document.getElementById("modeSelect").style.display="block";
   document.getElementById("alphabetBoardWrap").style.display = "block";
   const wel = document.getElementById('welcome');
@@ -907,7 +944,7 @@ function switchLB(m){
 }
 function trophySVG(kind){
   const fill = kind==='gold' ? '#d4af37' : kind==='silver' ? '#c0c0c0' : '#cd7f32';
-  return `<svg class="svgTrophy" viewBox="0 0 24 24" aria-hidden="true"><path fill="${fill}" d="M8 3h8v2h3a1 1 0 0 1 1 1v1a5 5 0 0 1-5 5h-1.06A4 4 0 0 1 12 14a4 4 0  0 1-1.94-1H9a5 5 0  0 1-5-5V6a1 1 0  0 1 1-1h3V3zm10 3h-2v1a3 3 0 0 0 3-3v2a3 3 0 0 1-1 0zM6 6H4a3 3 0 0 0 3 3V6H6zm5 11h2a5 5 0 0 0 4.33 2.5H7.67A5 5 0  0 0 11 17z"/></svg>`;
+  return `<svg class="svgTrophy" viewBox="0 0 24 24" aria-hidden="true"><path fill="${fill}" d="M8 3h8v2h3a1 1 0 0 1 1 1v1a5 5 0 0 1-5 5h-1.06A4 4 0 0 1 12 14a4 4 0 0 1-1.94-1H9a5 5 0 0 1-5-5V6a1 1 0 0 1 1-1h3V3zm10 3h-2v1a3 3 0 0 0 3-3v2a3 3 0 0 1-1 0zM6 6H4a3 3 0 0 0 3 3V6H6zm5 11h2a5 5 0 0 0 4.33 2.5H7.67A5 5 0 0 0 11 17z"/></svg>`;
 }
 function rowRankClass(i){ if(i===0) return 'rank1'; if(i===1) return 'rank2'; if(i===2) return 'rank3'; return ''; }
 function badgesFromUnlocked(unl){ const order = ACH.map(a=>a.id); return order.filter(id=>unl[id]).map(id => ACH.find(a=>a.id===id).icon); }
@@ -1202,7 +1239,6 @@ function buildAlphabetBoard(){
     card.onclick=()=>{ 
       stats.boardClicks++; stats.boardSet.add(l);
       immediatePlayLetter(l, currentQid);
-      // 字母後 800ms 播動物（原 1000ms → 800ms）
       setTimeout(()=>{ immediatePlayWord(animalWords[l], currentQid); }, 800);
       tryUnlock();
     };
