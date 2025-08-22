@@ -32,22 +32,32 @@
   @keyframes twinkle{0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.6);opacity:1}}
   @keyframes fly{0%{transform:translateY(0) translateX(0)}50%{transform:translateY(-120px) translateX(60px)}100%{transform:translateY(0) translateX(0)}}
   h1{margin:0 0 10px;text-align:center;letter-spacing:.5px;color:#f2f2df;text-shadow:0 3px 10px rgba(0,0,0,.25), 0 0 24px #e9f1c7;font-weight:900}
+
   .panel{max-width:1100px;margin:12px auto;position:relative;z-index:2;background:linear-gradient(180deg,#fffef9, #fff9ed);border:1px solid #e8e0c8;border-radius:18px;padding:14px 16px;box-shadow:0 14px 36px rgba(21,41,34,.22), inset 0 0 0 2px #fff7}
   .panel h3{margin:0 0 6px;color:#3f5c4c}
+
   button{padding:10px 18px;margin:8px;border:none;border-radius:14px;background:linear-gradient(180deg,#8c6a3f,#6f502c);color:#fff;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.18), inset 0 0 0 1px #0003;position:relative}
   button:before{content:"";position:absolute;inset:2px;border-radius:12px;background:linear-gradient(180deg,#a17845aa,#7b5a35aa);opacity:.25;pointer-events:none}
   button:hover{filter:brightness(1.02)}
   button:active{transform:translateY(1px)}
+
   #topBar{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:6px}
   #scoreBoard{background:#fffbf0;border:1px solid #efe2c7;border-radius:12px;padding:8px 12px;box-shadow:inset 0 0 0 1px #fff6}
   #timer{font-weight:900;padding:8px 12px;border-radius:12px;background:#f7ffe7;border:1px solid #d7efc9;box-shadow:inset 0 0 0 1px #fff6}
   #timer.red{background:#fff0f0;border-color:#ffd0d0;color:#931c1c}
+
+  /* 出題區：不顯示字母（保留高度） */
   #questionLetter{font-family:'Fredoka One', sans-serif;font-size:100px;line-height:1;color:#2a4d69;margin:12px 0 6px;min-height:120px;text-shadow:0 4px 10px rgba(0,0,0,.08)}
+
+  /* 選項：Baloo 2 + 大字 + 彩色圓角邊框 */
   .choice{font-family:'Baloo 2', cursive;display:inline-flex;align-items:center;justify-content:center;margin:10px;padding:20px 26px;border:4px solid transparent;border-radius:18px;background:linear-gradient(180deg,#fdf5e1,#f4e2bd);cursor:pointer;font-size:50px;min-width:150px;min-height:86px;box-shadow:0 10px 20px rgba(38,58,48,.22), inset 0 0 0 1px #0001;transition:transform .15s ease, background .15s ease, box-shadow .15s ease, filter .15s ease}
   .choice:hover{transform:translateY(-2px);filter:saturate(1.05)}
   .ok{background:linear-gradient(180deg,#e9fbdf,#d1f2c4)!important}
   .bad{background:linear-gradient(180deg,#ffe7e7,#ffd6d6)!important}
+
   #flash{min-height:1.2em;margin:6px 0 4px;color:#273d30;font-weight:700;text-shadow:0 1px 0 #fff}
+
+  /* 排行榜與獎章 */
   #leaderboard,#achBox{background:linear-gradient(180deg,#fffdf7,#fff6e8);border:1px solid #ecdcbf;border-radius:16px;padding:12px 14px;box-shadow:0 10px 24px rgba(21,41,34,.16), inset 0 0 0 2px #fff7}
   #leaderTabs{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
   #leaderTabs button{background:linear-gradient(180deg,#e6f2e6,#d9e9dc);color:#1f3b2b}
@@ -56,17 +66,21 @@
   #leaderboard th,#leaderboard td{padding:8px 10px}
   .lb-row{background:linear-gradient(180deg,#f7fbf5,#f0f7f0);border:1px solid #dce9dc;border-radius:12px;box-shadow:0 6px 14px rgba(21,41,34,.08)}
   .rank1{border:2px solid #d4af37!important;background:linear-gradient(180deg,#fff8e1,#fff3cd)}
-  .rank2{border:2px solid #c0c0c0!important;background:linear-gradient(180deg,#f7f7f7,#ededed)}
+  .rank2{border:2px solid #c0c00!important;background:linear-gradient(180deg,#f7f7f7,#ededed)}
   .rank3{border:2px solid #cd7f32!important;background:linear-gradient(180deg,#fff1e6,#ffe3cf)}
   .nameCell{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .svgTrophy{width:20px;height:20px;display:inline-block;vertical-align:middle}
   .badgeIcons{display:inline-flex;gap:4px;margin-left:6px;flex-wrap:wrap}
   .miniBadge{font-size:16px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
+
+  /* 獎章區 */
   .badgeWrap{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
   .ach{display:flex;gap:10px;align-items:center;background:#f6faf4;border:1px solid #e3efe3;border-radius:12px;padding:10px}
   .ach.lock{filter:grayscale(.9) contrast(.85);opacity:.65}
   .ach .ic{font-size:22px}
   .ach .name{font-weight:800}
+
+  /* 常駐字母學習板 */
   #alphabetBoardWrap{background:linear-gradient(180deg,#f9fff7,#f0faef);border:1px solid #e4f0e4;backdrop-filter:blur(4px);padding:12px;border-radius:16px;box-shadow:0 10px 24px rgba(21,41,34,.14), inset 0 0 0 2px #fff7}
   #alphabetBoard{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
   .letterCard{display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,#f7fff7,#eef7ee);border:1px solid #d6e7d6;border-radius:14px;padding:8px 10px;cursor:pointer;box-shadow:0 6px 14px rgba(21,41,34,.08)}
@@ -75,7 +89,10 @@
   .lab{display:flex;flex-direction:column;line-height:1.1}
   .lab .l{font-weight:900}
   .lab .a{font-size:.92rem;color:#455}
+
   @media (max-width:520px){.choice{min-width:46%;font-size:40px;padding:16px 18px} #questionLetter{font-size:72px; min-height:86px}}
+
+  /* 漂亮彈窗 */
   .modal-backdrop{position:fixed; inset:0; background:rgba(17,30,24,.45); display:none; align-items:center; justify-content:center; z-index:1000;}
   .modal{width:min(560px,92vw); border-radius:18px; padding:16px; background:linear-gradient(180deg,#fefcf6,#fbf1df); border:1px solid #eadfc6; box-shadow:0 20px 50px rgba(7,18,14,.35), inset 0 0 0 2px #fff7; text-align:left}
   .modal h3{margin:0 0 6px; color:#325244}
@@ -84,6 +101,8 @@
   .row{display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap}
   .modal .actions{display:flex; gap:8px; justify-content:flex-end; margin-top:12px}
   .modal input[type="text"]{flex:1; padding:10px 12px; border:1px solid #d9e2d9; border-radius:10px; font-size:1rem}
+
+  /* 全螢幕動畫畫布 & 連擊 HUD */
   #fxCanvas{position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:999;}
   #comboHud{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); font-family:'Baloo 2', cursive; font-size:100px; line-height:1; color:#d4af37; text-shadow:0 2px 0 #b9902a, 0 0 28px rgba(212,175,55,.55); -webkit-text-stroke:1px rgba(0,0,0,.18); filter: drop-shadow(0 10px 18px rgba(0,0,0,.25)); display:none; pointer-events:none; z-index:1001; white-space:nowrap}
   #comboHud .flame{display:inline-block; margin:0 .15em; filter:drop-shadow(0 0 10px rgba(255,120,0,.45)); animation: flameFlicker 1.2s infinite ease-in-out;}
@@ -102,12 +121,13 @@
   @keyframes toastSlide{0%{transform:translateX(-50%) translateY(-40px);opacity:0}40%{transform:translateX(-50%) translateY(0);opacity:1}80%{transform:translateX(-50%) translateY(0);opacity:1}100%{transform:translateX(-50%) translateY(-20px);opacity:0}}
   @keyframes shinePass{0%{left:-60%}100%{left:120%}}
 
+  /* BGM 控制 */
   .bgmCtrl{position:fixed; right:14px; top:14px; z-index:1003; display:flex; align-items:center; gap:6px;}
   .bgmBtn{padding:8px 12px; margin:0; border-radius:12px; background:linear-gradient(180deg,#6a845f,#526b4b);}
   .volWrap{display:flex; align-items:center; gap:6px; background:#f0f6ef; border:1px solid #cfe0cf; padding:6px 8px; border-radius:12px; box-shadow:inset 0 0 0 1px #fff6}
   .volWrap input[type=range]{width:120px}
 
-  /* === 新增：吉卜力森林風格歡迎頁 === */
+  /* === 歡迎頁（淡出 + 飄葉） === */
   #welcome{
     position:fixed; inset:0; z-index:2001; display:flex; align-items:center; justify-content:center;
     background:
@@ -132,8 +152,7 @@
   }
   .wel-title{
     font-family:'Baloo 2', cursive; font-weight:900; font-size: clamp(28px, 6vw, 48px);
-    letter-spacing:.5px; color:#2f4e41; text-shadow:0 2px 0 #fff8;
-    margin:0 0 6px;
+    letter-spacing:.5px; color:#2f4e41; text-shadow:0 2px 0 #fff8; margin:0 0 6px;
   }
   .wel-sub{ color:#37584a; opacity:.95; margin:0 0 12px; }
   .wel-btn{
@@ -141,10 +160,24 @@
     background:linear-gradient(180deg,#7aa56f,#5a8453); border-radius:16px; color:#fff; box-shadow:0 10px 24px rgba(0,0,0,.2), inset 0 0 0 1px #0002;
   }
   .wel-fireflies i{position:absolute; width:8px; height:8px; border-radius:50%; background: radial-gradient(circle, #fff 0 35%, #fff8 36% 60%, transparent 61%); animation: fly 12s linear infinite, twinkle 2s ease-in-out infinite; opacity:.75;}
+  .leaf{ position:absolute; top:-50px; font-size:24px; animation: fall linear forwards; }
+  @keyframes fall{ to { transform: translateY(110vh) rotate(360deg); opacity:0; } }
+
+  /* 左上：返回（改深色字以避免白底看不清） */
+  #homeOwl{
+    position:fixed; left:12px; top:12px; z-index:1501; display:none;
+    padding:8px 12px; border-radius:14px;
+    background:linear-gradient(180deg,#f2f7f2,#e7efe7); border:1px solid #cfe0cf;
+    box-shadow:0 8px 18px rgba(0,0,0,.18), inset 0 0 0 2px #fff7;
+    font-family:'Baloo 2', cursive; cursor:pointer;
+    color:#1f3b2b; font-weight:800; text-shadow:0 1px 0 #fff;
+  }
+  #homeOwl:hover{ filter:brightness(1.05) }
 </style>
 </head>
 <body>
-<!-- 新增：歡迎頁 -->
+
+<!-- 歡迎頁（小狸貓 🦝 + 淡出 + 飄葉） -->
 <div id="welcome" aria-label="歡迎頁">
   <div class="wel-canopy"></div>
   <div class="wel-hills"></div>
@@ -157,12 +190,16 @@
     <i style="left:18%; top:36%; animation-delay:1.9s"></i>
   </div>
   <div class="wel-card">
-    <div class="wel-title">歡迎來到森林字母冒險</div>
-    <div class="wel-sub">跟著動物朋友，一起認識 A–Z！點擊下方開始旅程。</div>
+    <div class="wel-title">今晚的森林任務開始！</div>
+    <div class="wel-sub">跟著小狸貓夥伴，一起踏上 A–Z 的夜間巡禮。</div>
+    <div style="margin:12px 0 6px;font-size:5rem;line-height:1;">🦝</div>
     <button class="wel-btn" onclick="enterForest()">🌲 進入森林</button>
     <div style="font-size:.9rem;opacity:.8;margin-top:6px;color:#2b463a">（iPhone 會同時啟用聲音，請確認關閉靜音鍵）</div>
   </div>
 </div>
+
+<!-- 左上角：返回歡迎頁 -->
+<button id="homeOwl" title="回到歡迎頁" onclick="goHomeFromOwl()">🦉 返回</button>
 
 <div class="scene" id="sceneRoot">
   <div class="canopy"></div>
@@ -187,6 +224,7 @@
 
   <h1>Alphabet Animal Game</h1>
 
+  <!-- 主選單 -->
   <div id="modeSelect" class="panel" style="text-align:center">
     <h3>選擇模式</h3>
     <button onclick="openScoreModal('upper')">🔠 大寫字母</button>
@@ -196,6 +234,7 @@
     <div style="font-size:.95rem;opacity:.9;margin-top:6px;color:#2a4135">（彈窗選擇「計分 / 不計分」，計分需輸入姓名）</div>
   </div>
 
+  <!-- 遊戲進行區 -->
   <div class="panel" id="topWrap" style="display:none;">
     <div id="topBar">
       <div id="scoreBoard"></div>
@@ -207,11 +246,13 @@
     <div id="flash"></div>
   </div>
 
+  <!-- 獎章 -->
   <div id="achBox" class="panel" style="display:none;">
     <div style="font-weight:800;margin-bottom:6px;color:#2f4f40">🏅 闖關獎章</div>
     <div class="badgeWrap" id="achWrap"></div>
   </div>
 
+  <!-- 排行榜 -->
   <div id="leaderboard" class="panel" style="display:none;">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
       <div style="font-weight:800;margin-bottom:6px;color:#2f4f40">🏆 排行榜（各模式前五名）</div>
@@ -226,12 +267,14 @@
     <table id="lb"></table>
   </div>
 
+  <!-- 常駐字母學習板（闖關時會隱藏） -->
   <div id="alphabetBoardWrap" class="panel">
     <div style="font-weight:800;margin-bottom:6px;color:#2f4f40">📚 字母學習板（點擊可發音）</div>
     <div id="alphabetBoard"></div>
   </div>
 </div>
 
+<!-- 全螢幕特效 -->
 <canvas id="fxCanvas"></canvas>
 <div id="comboHud"><span class="flame">🔥</span> +5 <span class="flame">🔥</span></div>
 
@@ -294,9 +337,7 @@
 </div>
 
 <script>
-/* ====== 以下為你原有的完整功能（已整合歡迎頁；不刪除任何既有邏輯） ====== */
-
-/* ——（背景音樂來源設定，與你之前一致）—— */
+/* ================= 背景音樂（依模式） ================= */
 const BGM_SOURCES = {
   home:   "./scenery-142705.mp3",
   upper:  "./scent-of-forest-116193.mp3",
@@ -305,11 +346,28 @@ const BGM_SOURCES = {
   extreme:"./mysterious_night-286709.mp3"
 };
 
-/* ===== 進入森林（歡迎頁按鈕）：淡出 + iOS 解鎖 + 播主頁 BGM ===== */
+/* ================== 歡迎頁小劇情控制（僅飄葉） ================== */
+let _leafTimer=null;
+function startWelcomeScene(){
+  stopWelcomeScene();
+  const host = document.getElementById('welcome');
+  _leafTimer = setInterval(()=>{
+    const leaf = document.createElement('div');
+    leaf.textContent = Math.random()<0.5 ? "🍂" : "🍃";
+    leaf.className = "leaf";
+    leaf.style.left = (Math.random()*100).toFixed(2) + "vw";
+    leaf.style.animationDuration = (3+Math.random()*3).toFixed(2) + "s";
+    host.appendChild(leaf);
+    setTimeout(()=>leaf.remove(), 6500);
+  }, 600);
+}
+function stopWelcomeScene(){
+  if(_leafTimer){ clearInterval(_leafTimer); _leafTimer=null; }
+  document.querySelectorAll('#welcome .leaf').forEach(n=>n.remove());
+}
 async function enterForest(){
   const wel = document.getElementById('welcome');
   wel.classList.add('fadeOut');
-  // 嘗試 iOS 聲音解鎖（若需要）
   try{
     if(document.getElementById('soundGate').style.display==='flex'){
       await enableSoundIOS();
@@ -317,21 +375,33 @@ async function enterForest(){
       await unlockAudioOnce();
     }
   }catch(e){}
-  // 切主頁音樂與播放
-  try{
-    await setBGMTrack('home');
-    await playBGM();
-  }catch(e){}
-  // 真正隱藏
-  setTimeout(()=>{ wel.style.display='none'; }, 720);
+  try{ await setBGMTrack('home'); await playBGM(); }catch(e){}
+  setTimeout(()=>{
+    wel.style.display='none';
+    stopWelcomeScene();
+    document.getElementById('homeOwl').style.display='inline-block';
+  }, 720);
+}
+function goHomeFromOwl(){
+  const inGame = document.getElementById('topWrap').style.display!=='none';
+  if(inGame && isScoredMode){
+    const ok = confirm("目前是計分模式，返回歡迎頁會中止本局。確定要返回嗎？");
+    if(!ok) return;
+  }
+  try{ speechSynthesis.cancel(); }catch(e){}
+  stopAllSpeech(); clearTimer(); cancelAdvance(); // 取消任何待換題
+  document.getElementById("topWrap").style.display='none';
+  document.getElementById("modeSelect").style.display="block";
+  document.getElementById("alphabetBoardWrap").style.display = "block";
+  const wel = document.getElementById('welcome');
+  wel.classList.remove('fadeOut');
+  wel.style.display='flex';
+  startWelcomeScene();
+  setBGMTrack('home');
+  document.getElementById('homeOwl').style.display='none';
 }
 
-/* ===== 其餘完整遊戲邏輯 ===== */
-/* —— 省略重複解說，直接保留你先前的所有函式與事件 —— */
-/* —— 以下貼上上一版完整 JS（含：音訊容錯、ducking、計時器、獎章、排行榜、學習板、極限關卡、成就吐司、BGM 控制等） —— */
-
-/* === 你的上一版腳本從這裡開始（為節省空間不再逐段註解，功能同前） === */
-/* 基本資料 */
+/* ================== 遊戲資料與音訊 ================== */
 const animalWords={A:"Ant",B:"Bear",C:"Cat",D:"Dog",E:"Elephant",F:"Fox",G:"Goat",H:"Horse",I:"Iguana",J:"Jaguar",K:"Kangaroo",L:"Lion",M:"Monkey",N:"Newt",O:"Owl",P:"Pig",Q:"Quail",R:"Rabbit",S:"Snake",T:"Tiger",U:"Unicorn",V:"Vulture",W:"Wolf",X:"Xerus",Y:"Yak",Z:"Zebra"};
 const animalEmoji={A:"🐜",B:"🐻",C:"🐱",D:"🐶",E:"🐘",F:"🦊",G:"🐐",H:"🐴",I:"🦎",J:"🐆",K:"🦘",L:"🦁",M:"🐵",N:"🦎",O:"🦉",P:"🐷",Q:"🦃",R:"🐰",S:"🐍",T:"🐯",U:"🦄",V:"🦅",W:"🐺",X:"🐿️",Y:"🦬",Z:"🦓"};
 const QUESTION_TIME=10;
@@ -339,7 +409,7 @@ const EXTREME_QUESTIONS=100;
 const NORMAL_QUESTIONS=50;
 const UPPER="ABCDEFGHIJKLMNOPQRSTUVWXYZ".split(""), LOWER="abcdefghijklmnopqrstuvwxyz".split("");
 
-/* 背景音樂元件與音量平衡（含 ducking/壓縮器） */
+/* 背景音樂管線（含 ducking） */
 let bgmEl = new Audio(); bgmEl.loop = true; bgmEl.preload = "auto";
 let bgmOn  = loadLS("az-bgm-on", true);
 let bgmVol = loadLS("az-bgm-vol", 0.35);
@@ -394,7 +464,7 @@ function duckBGM(on){
   }catch{ bgmGainNode.gain.value = target; }
 }
 
-/* iOS 友善：手勢解鎖 */
+/* iOS 手勢解鎖 */
 let gestureArmed = false;
 function armGesture() {
   if (gestureArmed) return;
@@ -407,7 +477,7 @@ window.addEventListener('pointerdown', armGesture, { once: true, passive: true }
 window.addEventListener('touchstart', armGesture, { once: true, passive: true });
 window.addEventListener('keydown', armGesture, { once: true });
 
-/* 狀態與變數（原樣保留） */
+/* 狀態與變數 */
 let mode="upper",current="",score=0,streak=0,played=0,locked=false;
 let stats={
   correct:0, wrong:0, bestStreak:0,
@@ -420,39 +490,29 @@ let perfectBonusApplied=false;
 let timeLeft=QUESTION_TIME, timerId=null;
 let currentQid = 0;
 
-/* 語音（TTS 備援） */
-let _voiceCache = null, _speakSeq = 0;
+/* ====== TTS 備援 ====== */
+let _voiceCache = null;
+speechSynthesis.onvoiceschanged = ()=>{ _voiceCache = null; };
 function _pickVoice(){
   if (_voiceCache) return _voiceCache;
   const vs = speechSynthesis.getVoices() || [];
-  _voiceCache =
-    vs.find(v=>/en/i.test(v.lang) && /child|female|junior/i.test(v.name)) ||
-    vs.find(v=>/en-US|en-GB/i.test(v.lang)) || null;
+  _voiceCache = vs.find(v=>/en/i.test(v.lang) && /child|female|junior/i.test(v.name)) ||
+                vs.find(v=>/en-US|en-GB/i.test(v.lang)) || null;
   return _voiceCache;
 }
-speechSynthesis.onvoiceschanged = ()=>{ _voiceCache = null; _pickVoice(); };
-function waitSilence(waitMs = 900){
-  try{ speechSynthesis.cancel(); }catch(e){}
-  const start = performance.now();
-  return new Promise(resolve=>{
-    (function poll(){
-      const quiet = !speechSynthesis.speaking && !speechSynthesis.pending;
-      if (quiet || performance.now() - start > waitMs) resolve();
-      else setTimeout(poll, 30);
-    })();
-  });
-}
-function playUtterance(text, rate){
+function cancelTTS(){ try{ speechSynthesis.cancel(); }catch{} }
+function playTTS(text, rate=0.9){
   return new Promise(resolve=>{
     const u = new SpeechSynthesisUtterance(text);
-    u.rate = rate; u.volume = 1; const v = _pickVoice(); if (v) u.voice = v;
-    u.onend = u.onerror = ()=>resolve();
+    const v = _pickVoice(); if(v) u.voice=v;
+    u.rate=rate; u.volume=1;
+    u.onend=u.onerror=()=>resolve();
     try{ speechSynthesis.speak(u); }catch{ resolve(); }
   });
 }
-async function speakSolo(text, rate=0.9){ await waitSilence(600); await playUtterance(text, rate); }
+async function speakSolo(text, rate=0.9){ cancelTTS(); await playTTS(text, rate); }
 
-/* 真人音檔優先：多路徑容錯 + 題目綁定 */
+/* ====== 音檔來源工具 ====== */
 const AUDIO_BASES = ["./sounds/letters/","./sounds/animals/","./audio/","./letters/","./animals/","./"];
 const AUDIO_EXTS = ["mp3","wav","m4a"];
 const animalAltByLetter = {A:["Ant","Alligator","Antelope"],B:["Bear","Beaver","Buffalo"],C:["Cat","Cow","Camel"],D:["Dog","Deer","Dolphin"],E:["Elephant","Eagle","Emu"],F:["Fox","Frog","Flamingo"],G:["Goat","Giraffe","Goose"],H:["Horse","Hippo","Hare"],I:["Iguana","Impala","Insect"],J:["Jaguar","Jay","Jellyfish"],K:["Kangaroo","Koala","Kiwi"],L:["Lion","Llama","Leopard"],M:["Monkey","Mouse","Moose"],N:["Newt","Narwhal","Nightingale"],O:["Owl","Octopus","Otter"],P:["Pig","Penguin","Panda"],Q:["Quail","Quokka","Quetzal"],R:["Rabbit","Raccoon","Rhino"],S:["Snake","Seal","Sheep"],T:["Tiger","Turtle","Turkey"],U:["Unicorn","UmbrellaBird","Urial"],V:["Vulture","Viper","Vicuña"],W:["Wolf","Whale","Walrus"],X:["Xerus","X-ray fish","Xrayfish","Xray Fish"],Y:["Yak","Yabby","Yakin"],Z:["Zebra","Zebu"]};
@@ -463,34 +523,68 @@ function wordSources(word){
   const alt = animalAltByLetter[L]||[];
   return buildSources(Array.from(new Set([w,Cap,w.toLowerCase(),...alt])));
 }
-let _letterPlayer=null, _wordPlayer=null;
-function killAudio(a){ if(!a) return; try{ a.pause(); a.src=''; }catch{} }
-function stopAllSpeech(){ try{ speechSynthesis.cancel(); }catch{} killAudio(_letterPlayer); killAudio(_wordPlayer); _letterPlayer=null; _wordPlayer=null; }
-function tryPlayFromList(list, qid, onEnded, onFail){
-  const a = new Audio(); a.setAttribute('playsinline',''); a.preload='auto'; a.volume=1; a._qid = qid;
-  let idx = 0, aborted = false;
-  const next = () => {
-    if (aborted || qid !== currentQid) return;
-    if (idx >= list.length){ aborted = true; onFail?.(); return; }
-    const src = list[idx++]; a.onerror = () => { if(qid !== currentQid) return; next(); };
-    a.onended = () => { if(qid !== currentQid) return; onEnded?.(); };
-    try{ a.pause(); a.currentTime=0; }catch{} a.src = src;
-    setTimeout(()=>{ if(qid !== currentQid) return; a.play().catch(()=>next()); }, 120);
-  };
-  next(); return a;
+
+/* ====== 共用可中斷播放器（避免換題雜音） ====== */
+const letterEl = new Audio(); letterEl.setAttribute('playsinline',''); letterEl.preload='auto'; letterEl.autoplay=false; letterEl.muted=true;
+const wordEl   = new Audio(); wordEl.setAttribute('playsinline','');   wordEl.preload='auto';   wordEl.autoplay=false;   wordEl.muted=true;
+
+function clearEvents(el){ el.onended=null; el.onerror=null; el.onloadeddata=null; el.oncanplay=null; el.oncanplaythrough=null; }
+function hardStop(el){ try{ clearEvents(el); el.pause(); el.currentTime=0; el.removeAttribute('src'); el.src=''; el.load(); el.muted=true; }catch{} }
+
+function playListOn(el, srcList, qid, onEnded, onFail){
+  let idx=0, killed=false, started=false, startTimer=null;
+  hardStop(el);
+  function kill(){ killed=true; clearTimeout(startTimer); hardStop(el); }
+  function next(){
+    if(killed || qid!==currentQid) return;
+    if(idx>=srcList.length){ kill(); onFail?.(); return; }
+    const src = srcList[idx++];
+
+    hardStop(el);
+    el.volume = 1; el.muted = true; el.src = src;
+
+    const tryStart = ()=>{
+      if(killed || qid!==currentQid || started) return;
+      started = true;
+      el.play().then(()=>{
+        setTimeout(()=>{ if(!killed && qid===currentQid){ el.muted=false; } }, 40);
+      }).catch(()=>{ started=false; next(); });
+    };
+
+    el.oncanplaythrough = tryStart;
+    el.onloadeddata = ()=>{ startTimer = setTimeout(tryStart, 120); };
+
+    el.onerror = ()=>{ clearTimeout(startTimer); next(); };
+    el.onended = ()=>{ if(killed || qid!==currentQid) return; kill(); onEnded?.(); };
+  }
+  next();
+  return { kill };
+}
+
+function stopAllSpeech(){
+  try{ speechSynthesis.cancel(); }catch{}
+  hardStop(letterEl); hardStop(wordEl);
 }
 function immediatePlayLetter(letter, qid=currentQid){
   stopAllSpeech(); duckBGM(true);
-  const sources = letterSources(letter);
-  _letterPlayer = tryPlayFromList(sources, qid, ()=>duckBGM(false), ()=>{ duckBGM(false); (String(letter).toUpperCase()==='Z') ? speakSolo('zee') : speakSolo(letter); });
+  const list = letterSources(letter);
+  const ctl = playListOn(letterEl, list, qid,
+    ()=>duckBGM(false),
+    ()=>{ duckBGM(false); (String(letter).toUpperCase()==='Z') ? speakSolo('zee') : speakSolo(letter); }
+  );
+  return ctl;
 }
 function immediatePlayWord(word, qid=currentQid){
   duckBGM(true);
-  const sources = wordSources(word);
-  _wordPlayer = tryPlayFromList(sources, qid, ()=>duckBGM(false), ()=>{ duckBGM(false); speakSolo(word); });
+  const list = wordSources(word);
+  const ctl = playListOn(wordEl, list, qid,
+    ()=>duckBGM(false),
+    ()=>{ duckBGM(false); speakSolo(word); }
+  );
+  return ctl;
 }
 
-/* 答題音效（ducking + beep 備援） */
+/* ====== 答題音效（含 ducking + 蜂鳴備援） ====== */
 let audioCtx=null;
 function ensureAudioCtx(){ if(!audioCtx){const C=window.AudioContext||window.webkitAudioContext; audioCtx=new C();} }
 async function unlockAudioOnce(){
@@ -519,7 +613,7 @@ const comboHud = ()=>document.getElementById('comboHud');
 function showCombo(){ if(streak>=5){ const el=comboHud(); el.innerHTML = `<span class="flame">🔥</span> +${streak} <span class="flame">🔥</span>`; el.style.display='block'; el.classList.remove('comboPop'); void el.offsetWidth; el.classList.add('comboPop'); } else { hideCombo(); } }
 function hideCombo(){ const el=comboHud(); el.style.display='none'; el.innerHTML=''; }
 
-/* 獎章群（含吐司） */
+/* 獎章（含吐司） */
 const ACH = [
   {id:"FIRST_CORRECT",icon:"🌱",name:"森林新手",desc:"第一次答對",check:s=>s.correct>=1},
   {id:"REPLAY_USED",  icon:"🔁",name:"勤學不倦",desc:"使用過重播題目",check:s=>s.replayUsed},
@@ -642,25 +736,35 @@ function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 function colorForLetter(letter){ const L=(letter.toUpperCase().charCodeAt(0)-65+26)%26; const hue=Math.round(L*(360/26)); return `hsl(${hue} 80% 38%)`; }
 function maxQuestionsForMode(){ return mode==='extreme' ? EXTREME_QUESTIONS : NORMAL_QUESTIONS; }
 
-/* 遊戲流程 */
-let _advanceGuard = false;
-function safeAdvance(delay){
-  if (_advanceGuard) return;
-  _advanceGuard = true;
+/* ======= 換題排程：單一權威 token（防止雙重換題造成閃題/雜音） ======= */
+let pendingAdvanceToken = 0;
+function cancelAdvance(){ pendingAdvanceToken++; } // 使所有舊排程失效
+function requestAdvance(delay=0){
+  const my = ++pendingAdvanceToken;
   setTimeout(()=>{
-    played++; setNumbers();
-    if(played>=maxQuestionsForMode()) finishGame(); else startRound();
+    if (my !== pendingAdvanceToken) return; // 已被較新的排程取代
+    advanceToNext();
   }, delay);
 }
+function advanceToNext(){
+  played++;
+  setNumbers();
+  if(played>=maxQuestionsForMode()) finishGame();
+  else startRound();
+}
+
+/* 遊戲流程 */
 async function startGame(m){
   await unlockAudioOnce();
   await setBGMTrack(m);
-  mode=m; score=0; streak=0; played=0; perfectBonusApplied=false; clearTimer();
+  mode=m; score=0; streak=0; played=0; perfectBonusApplied=false; clearTimer(); cancelAdvance();
   stats={correct:0, wrong:0, bestStreak:0, playedUpper: stats.playedUpper || (m==='upper'), playedLower: stats.playedLower || (m==='lower'), playedMixed: stats.playedMixed || (m==='mixed'), finishedOnce:false, perfectGame:false, replayUsed:false, boardClicks:0, boardSet:new Set(), firstThreeCorrect:0};
   hideCombo();
   document.getElementById("modeSelect").style.display="none";
   document.getElementById("topWrap").style.display="block";
   document.getElementById("giveUpBtn").style.display = 'inline-block';
+  document.getElementById("alphabetBoardWrap").style.display = "none"; // 闖關時隱藏學習板
+  document.getElementById('homeOwl').style.display='inline-block';
   renderAchievements(); renderLeaderboard(); switchLB(mode); startRound();
 }
 function pickLetter(){
@@ -670,14 +774,17 @@ function pickLetter(){
   return pool[Math.floor(Math.random()*26)];
 }
 async function startRound(){
-  _advanceGuard = false;
-  await waitSilence(250);
-  stopAllSpeech();
-  currentQid++;
+  cancelAdvance();              // 任何舊的換題排程全部作廢
+  cancelTTS(); stopAllSpeech(); // 徹底停聲
+  await new Promise(r=>setTimeout(r, 120)); // 小延遲，讓舊音訊硬停完全生效
+
+  currentQid++; // 以 qid 標記本題有效期
   const qid = currentQid;
+
   current=pickLetter(); locked=false;
   const opts=[current]; while(opts.length<3){const c=pickLetter(); if(!opts.includes(c)) opts.push(c);}
   opts.sort(()=>Math.random()-0.5);
+
   const htmlChoices = opts.map(l=>{
     const border = colorForLetter(l);
     return `<div class="choice" style="border-color:${border}; box-shadow:0 10px 20px rgba(38,58,48,.22), inset 0 0 0 2px ${border}22;" onclick="check('${l}',this)">${l}</div>`;
@@ -685,7 +792,10 @@ async function startRound(){
   document.getElementById("gameArea").innerHTML = `<div id="questionLetter"></div>` + htmlChoices;
   document.getElementById("flash").textContent="";
   setNumbers();
-  immediatePlayLetter(current, qid);
+
+  // 等 DOM 完整渲染後再啟播，避免「閃題時搶播」
+  requestAnimationFrame(()=>{ if(qid===currentQid) immediatePlayLetter(current, qid); });
+
   const timerEl = document.getElementById('timer');
   if(isScoredMode){ timerEl.style.display='inline-block'; startTimer(); }
   else{ timerEl.style.display='none'; clearTimer(); }
@@ -702,7 +812,7 @@ function setNumbers(){
 function startTimer(){ clearTimer(); timeLeft = QUESTION_TIME; renderTimer(); timerId = setInterval(()=>{ timeLeft = Math.max(0, timeLeft - 1); renderTimer(); if(timeLeft<=0){ clearTimer(); timeUp(); } }, 1000); }
 function renderTimer(){ const t = document.getElementById('timer'); t.textContent = `⏱ ${timeLeft}s`; t.classList.toggle('red', timeLeft<=3); }
 function clearTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } }
-function timeUp(){ if(locked) return; locked=true; clearTimer(); _advanceGuard = false; stats.wrong++; streak=0; hideCombo(); document.getElementById("flash").textContent=`⌛ 時間到！此題不計分`; try{ playSfxWrong(); }catch(e){} safeAdvance(900); setTimeout(()=>safeAdvance(0), 1500); }
+function timeUp(){ if(locked) return; locked=true; clearTimer(); stats.wrong++; streak=0; hideCombo(); document.getElementById("flash").textContent=`⌛ 時間到！此題不計分`; try{ playSfxWrong(); }catch(e){} requestAdvance(900); }
 
 /* 計分規則（≥8 起 3 分 + 超速獎勵） */
 function basePointsForNext(){ const next = streak + 1; if(next>=8) return 3; if(next>=5) return 2; return 1; }
@@ -710,8 +820,10 @@ function speedBonus(){ return isScoredMode ? Math.floor(timeLeft * 0.5) : 0; }
 
 /* 判題 */
 async function check(val, el){
-  if(locked) return; locked=true; clearTimer(); _advanceGuard = false;
-  currentQid++; stopAllSpeech();
+  if(locked) return; locked=true; clearTimer(); cancelAdvance(); // 先取消任何待換題
+  cancelTTS(); stopAllSpeech(); // 作答瞬間也先止聲
+  currentQid++;                 // 舊聲音一律失效
+
   if(val===current){
     const base = basePointsForNext();
     const spd = speedBonus();
@@ -722,21 +834,21 @@ async function check(val, el){
     document.getElementById("flash").textContent=`✅ 正確！ [+${base}${spd>0?` + 加速 ${spd}`:''}]`;
     try{ await playSfxCorrect(); }catch(e){}
     tryUnlock(); showCombo(); maybeCelebration();
-    safeAdvance(900); setTimeout(()=>safeAdvance(0), 1500);
+    requestAdvance(900);
   }else{
     streak=0; stats.wrong++;
     el.classList.add("bad");
     document.getElementById("flash").textContent=`❌ 再試一次`;
     try{ await playSfxWrong(); }catch(e){}
     hideCombo();
-    safeAdvance(1300); setTimeout(()=>safeAdvance(0), 1800);
+    requestAdvance(1300);
   }
 }
 
 /* 結束（50 題全對 +50；極限不加） */
 function finishGame(){
-  try{ speechSynthesis.cancel(); }catch(e){}
-  currentQid++; stopAllSpeech();
+  cancelTTS(); stopAllSpeech(); cancelAdvance();
+  currentQid++;
   const maxQ = maxQuestionsForMode();
   stats.finishedOnce = true; if(stats.correct===maxQ && stats.wrong===0){ stats.perfectGame = true; }
   if(isScoredMode && !perfectBonusApplied && stats.correct===NORMAL_QUESTIONS && mode!=='extreme'){
@@ -746,6 +858,7 @@ function finishGame(){
   document.getElementById("topWrap").style.display="none";
   submitScoreIfBest(); tryUnlock();
   document.getElementById("modeSelect").style.display="block";
+  document.getElementById("alphabetBoardWrap").style.display = "block"; // 回主畫面顯示學習板
   hideCombo();
   openNextModal();
   setBGMTrack('home');
@@ -755,11 +868,11 @@ function finishGame(){
 function openGiveUpModal(){ document.getElementById('giveUpModal').style.display='flex'; }
 function closeGiveUpModal(){ document.getElementById('giveUpModal').style.display='none'; }
 function giveUpGame(){
-  try{ speechSynthesis.cancel(); }catch(e){}
-  currentQid++; stopAllSpeech();
-  clearTimer();
+  cancelTTS(); stopAllSpeech(); cancelAdvance();
+  currentQid++; clearTimer();
   document.getElementById("topWrap").style.display="none";
   document.getElementById("modeSelect").style.display="block";
+  document.getElementById("alphabetBoardWrap").style.display = "block";
   document.getElementById('giveUpModal').style.display='none';
   document.getElementById("flash").textContent="已放棄本局，回到主選單。";
   hideCombo();
@@ -857,7 +970,7 @@ function openNextModal(){
   }
   m.style.display='flex';
 }
-function backToMenu(){ document.getElementById('nextModal').style.display='none'; document.getElementById("modeSelect").style.display="block"; setBGMTrack('home'); }
+function backToMenu(){ document.getElementById('nextModal').style.display='none'; document.getElementById("modeSelect").style.display="block"; document.getElementById("alphabetBoardWrap").style.display = "block"; setBGMTrack('home'); }
 
 /* 字母學習板 */
 function buildAlphabetBoard(){
@@ -880,6 +993,7 @@ buildAlphabetBoard();
 
 /* 初始化 */
 (function init(){
+  startWelcomeScene();
   updateBgmBtn();
   const vol = document.getElementById('bgmVol'); if(vol) vol.value = bgmVol;
   setBGMTrack('home'); switchLB('upper'); renderLeaderboard();
