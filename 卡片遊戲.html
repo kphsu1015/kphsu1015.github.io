@@ -9,18 +9,16 @@
     --gap: 10px;
     --cols: 5;
     --rows: 4;
-    --cardW: 140px; /* 會由 JS 依螢幕自動調整 */
-    --aspect: 1.32; /* 卡片高/寬比 */
+    --cardW: 140px; /* JS 動態調整 */
+    --aspect: 1.32;
     --ink:#2a2a2a;
-    --paper:#fffbf5;
     --line:#eadfce;
-    --accent:#6aa37e;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
     margin:0; background:#fffdf8; color:var(--ink);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", Arial, sans-serif;
+    font-family: system-ui,-apple-system,"Segoe UI",Roboto,"PingFang TC","Microsoft JhengHei",Arial,sans-serif;
   }
   header{ padding:12px 14px 0 14px;}
   .bar{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
@@ -33,7 +31,7 @@
   .controls button{
     background:linear-gradient(#ffffff,#faf6ee);
     border:1px solid #e6dccb; cursor:pointer;
-    box-shadow: 0 1px 0 rgba(255,255,255,.7) inset, 0 2px 8px rgba(0,0,0,.06);
+    box-shadow:0 1px 0 rgba(255,255,255,.7) inset, 0 2px 8px rgba(0,0,0,.06);
   }
   .controls button:active{ transform: translateY(1px); }
   .stats{ padding:6px 14px 10px; font-size:14px; opacity:.9}
@@ -58,10 +56,7 @@
     border:2px solid var(--line); background:#fff;
     box-shadow:0 6px 14px rgba(0,0,0,.10), 0 1px 0 rgba(255,255,255,.6) inset;
   }
-  .front{
-    display:flex; align-items:center; justify-content:center; background:#fff;
-  }
-  /* 草原水彩卡面：若資料夾有卡面圖，優先顯示；否則用內建水彩漸層 */
+  .front{ display:flex; align-items:center; justify-content:center; background:#fff; }
   .front .art{
     position:absolute; inset:8%;
     border-radius:16px;
@@ -77,56 +72,38 @@
   }
   .back{ transform: rotateY(180deg); display:flex; flex-direction:column; }
   .img-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding:10px; }
-  .back img{
-    max-width:100%; max-height:100%;
-    object-fit: contain; display:block; border-radius:10px;
-    box-shadow: 0 2px 6px rgba(0,0,0,.08);
-  }
-  .label{
-    text-align:center; padding:8px 6px 10px; font-weight:700; letter-spacing:.3px;
-    color:#2b4333; background:linear-gradient(180deg, #f9fff7, #f0fbf0);
-    border-top:1px dashed #d7e7d7;
-  }
-
-  /* 完成浮層 */
+  .back img{ max-width:100%; max-height:100%; object-fit: contain; border-radius:10px; }
+  .label{ text-align:center; padding:8px 6px 10px; font-weight:700; color:#2b4333; }
   .win{
     position:fixed; inset:0; display:none; align-items:center; justify-content:center;
     background: rgba(255,255,255,.82); z-index:10;
   }
-  .win .box{
-    background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px 22px; text-align:center;
-    box-shadow:0 6px 22px rgba(0,0,0,.12);
-  }
+  .win .box{ background:#fff; border:1px solid var(--line); border-radius:16px; padding:20px 22px; text-align:center; }
   .win .box h2{ margin:0 0 8px; }
-  .win .box p{ margin:0 0 14px; color:#456651; }
 </style>
 </head>
 <body>
-  <header id="hdr">
-    <div class="bar">
-      <div class="title">翻卡記憶遊戲 · 草原水彩動物</div>
-      <div class="controls">
-        <label><input type="checkbox" id="voiceToggle" checked> 啟用發音</label>
-        <button id="resetBtn">重玩</button>
-      </div>
-    </div>
-    <div class="stats" id="stats">步數：0　｜　配對：0 / 10</div>
-  </header>
-
-  <main>
-    <div class="grid" id="grid" role="grid" aria-label="翻卡記憶格"></div>
-  </main>
-
-  <div class="win" id="win">
-    <div class="box">
-      <h2>太棒了！全部配對成功 🎉</h2>
-      <p id="winStats"></p>
-      <button id="againBtn">再玩一次</button>
+<header id="hdr">
+  <div class="bar">
+    <div class="title">翻卡記憶遊戲 · 草原水彩動物</div>
+    <div class="controls">
+      <label><input type="checkbox" id="voiceToggle" checked> 啟用發音</label>
+      <button id="resetBtn">重玩</button>
     </div>
   </div>
+  <div class="stats" id="stats">步數：0　｜　配對：0 / 10</div>
+</header>
+
+<main><div class="grid" id="grid" role="grid"></div></main>
+<div class="win" id="win">
+  <div class="box">
+    <h2>太棒了！全部配對成功 🎉</h2>
+    <p id="winStats"></p>
+    <button id="againBtn">再玩一次</button>
+  </div>
+</div>
 
 <script>
-/* ==== 設定：動物清單（請確保同資料夾有這些檔案） ==== */
 const ANIMALS = [
   {name:"Bear", img:"bear_text.jpg"},
   {name:"Cat", img:"cat_text.jpg"},
@@ -148,10 +125,7 @@ const ANIMALS = [
   {name:"Sheep", img:"sheep_text.jpg"},
   {name:"Tiger", img:"tiger.jpg"}
 ];
-
-// 每局配對數（10 種 × 2 = 20 張）
 const PICK = 10;
-
 const grid = document.getElementById('grid');
 const stats = document.getElementById('stats');
 const win = document.getElementById('win');
@@ -159,119 +133,31 @@ const winStats = document.getElementById('winStats');
 const againBtn = document.getElementById('againBtn');
 const resetBtn = document.getElementById('resetBtn');
 const voiceToggle = document.getElementById('voiceToggle');
+let deck=[], first=null, second=null, lock=false, steps=0, matched=0;
 
-let deck = [];
-let first = null, second = null, lock = false;
-let steps = 0, matched = 0;
-
-/* ======= UI 尺寸自適應 ======= */
+/* === 新版 fitAll，確保任何螢幕都能看到所有卡牌 === */
 function fitAll(){
-  const padX = 24, padY = 24; // 主區域 padding 預估
-  const W = document.documentElement.clientWidth - padX;
-  const H = (document.documentElement.clientHeight - (document.getElementById('hdr').offsetHeight || 120)) - padY;
+  const hdrH = document.getElementById('hdr').offsetHeight || 120;
+  const W = document.documentElement.clientWidth - 24;
+  const H = (document.documentElement.clientHeight - hdrH) - 24;
   const cols = 5, rows = 4, gap = 10, aspect = 1.32;
   const w1 = (W - gap*(cols-1)) / cols;
   const h1 = (H - gap*(rows-1)) / rows / aspect;
-  const size = Math.max(96, Math.min(160, Math.floor(Math.min(w1, h1))));
+  let size = Math.floor(Math.min(w1, h1));
+  size = Math.max(60, Math.min(160, size));
   document.documentElement.style.setProperty('--cardW', size + 'px');
 }
 window.addEventListener('resize', fitAll);
 
-/* ======= 遊戲主流程 ======= */
-function shuffle(arr){
-  for(let i=arr.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-function newDeck(){
-  const pool = [...ANIMALS];
-  shuffle(pool);
-  const chosen = pool.slice(0, PICK);
-  deck = [];
-  chosen.forEach(a => deck.push({...a}));
-  chosen.forEach(a => deck.push({...a}));
-  shuffle(deck);
-}
-
-function buildGrid(){
-  grid.innerHTML = '';
-  deck.forEach((card, idx)=>{
-    const el = document.createElement('button');
-    el.className='card';
-    el.setAttribute('aria-label', card.name);
-    el.innerHTML = `
-      <div class="inner" data-idx="${idx}">
-        <div class="face front"><div class="art" aria-hidden="true"></div></div>
-        <div class="face back">
-          <div class="img-wrap"><img alt="${card.name}" src="${card.img}"></div>
-          <div class="label">${card.name}</div>
-        </div>
-      </div>`;
-    el.addEventListener('click', ()=> onFlip(el.querySelector('.inner'), card));
-    grid.appendChild(el);
-  });
-}
-
-function onFlip(inner, card){
-  if(lock) return;
-  if(inner.classList.contains('flipped')) return;
-  inner.classList.add('flipped');
-  speak(card.name);
-
-  if(!first){ first = {inner, card}; return; }
-  if(first.inner === inner) return; // 同一張
-  second = {inner, card};
-  lock = true; steps++; updateStats();
-
-  if(first.card.name === second.card.name){
-    matched++;
-    setTimeout(()=> {
-      first = null; second = null; lock = false;
-      if(matched === PICK) showWin();
-    }, 200);
-  }else{
-    setTimeout(()=> {
-      first.inner.classList.remove('flipped');
-      second.inner.classList.remove('flipped');
-      first = null; second = null; lock = false;
-    }, 700);
-  }
-}
-
-function updateStats(){
-  stats.textContent = `步數：${steps}　｜　配對：${matched} / ${PICK}`;
-}
-
-function showWin(){
-  winStats.textContent = `共 ${steps} 步完成配對`;
-  win.style.display = 'flex';
-}
-
-function resetGame(){
-  steps = 0; matched = 0; first = null; second = null; lock = false;
-  win.style.display = 'none';
-  newDeck(); buildGrid(); fitAll(); updateStats();
-}
-
-/* ======= 簡易發音（Web Speech API） ======= */
-function speak(text){
-  if(!voiceToggle.checked) return;
-  try{
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = 'en-US';
-    utt.rate = 0.95; utt.pitch = 1.0; utt.volume = 1.0;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utt);
-  }catch(e){ /* ignore */ }
-}
-
-/* ======= 綁定按鈕 ======= */
-resetBtn.addEventListener('click', resetGame);
-againBtn.addEventListener('click', resetGame);
-
-/* ======= 啟動 ======= */
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+function newDeck(){const pool=[...ANIMALS];shuffle(pool);const chosen=pool.slice(0,PICK);deck=[];chosen.forEach(a=>deck.push({...a}));chosen.forEach(a=>deck.push({...a}));shuffle(deck);}
+function buildGrid(){grid.innerHTML='';deck.forEach((card,idx)=>{const el=document.createElement('button');el.className='card';el.setAttribute('aria-label',card.name);el.innerHTML=`<div class="inner" data-idx="${idx}"><div class="face front"><div class="art"></div></div><div class="face back"><div class="img-wrap"><img alt="${card.name}" src="${card.img}"></div><div class="label">${card.name}</div></div></div>`;el.addEventListener('click',()=>onFlip(el.querySelector('.inner'),card));grid.appendChild(el);});}
+function onFlip(inner,card){if(lock)return;if(inner.classList.contains('flipped'))return;inner.classList.add('flipped');speak(card.name);if(!first){first={inner,card};return;}if(first.inner===inner)return;second={inner,card};lock=true;steps++;updateStats();if(first.card.name===second.card.name){matched++;setTimeout(()=>{first=null;second=null;lock=false;if(matched===PICK)showWin();},200);}else{setTimeout(()=>{first.inner.classList.remove('flipped');second.inner.classList.remove('flipped');first=null;second=null;lock=false;},700);}}
+function updateStats(){stats.textContent=`步數：${steps}　｜　配對：${matched} / ${PICK}`;}
+function showWin(){winStats.textContent=`共 ${steps} 步完成配對`;win.style.display='flex';}
+function resetGame(){steps=0;matched=0;first=null;second=null;lock=false;win.style.display='none';newDeck();buildGrid();fitAll();updateStats();}
+function speak(text){if(!voiceToggle.checked)return;try{const utt=new SpeechSynthesisUtterance(text);utt.lang='en-US';utt.rate=0.95;window.speechSynthesis.cancel();window.speechSynthesis.speak(utt);}catch(e){}}
+resetBtn.addEventListener('click', resetGame);againBtn.addEventListener('click', resetGame);
 resetGame();
 </script>
 </body>
