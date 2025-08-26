@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>翻卡記憶遊戲 — 草原水彩動物（20張，真人語音）</title>
+<title>翻卡記憶遊戲 — 草原水彩動物（圖片保留比例＋文字不遮住）</title>
 <style>
   :root{
     --gap: 10px;
     --cols: 5;
     --rows: 4;
-    --cardW: 140px; /* JS 動態調整 */
+    --cardW: 140px;
     --aspect: 1.32;
     --ink:#2a2a2a;
     --line:#eadfce;
@@ -44,7 +44,6 @@
     place-content: center;
   }
 
-  /* 卡片 */
   .card{
     position:relative; width: var(--cardW); height: calc(var(--cardW) * var(--aspect));
     perspective:1000px; border:0; background:transparent; padding:0; cursor:pointer;
@@ -56,24 +55,35 @@
     border:2px solid var(--line); background:#fff;
     box-shadow:0 6px 14px rgba(0,0,0,.10), 0 1px 0 rgba(255,255,255,.6) inset;
   }
+
+  /* 卡片正面：草原漸層 */
   .front{ display:flex; align-items:center; justify-content:center; background:#fff; }
   .front .art{
     position:absolute; inset:8%;
     border-radius:16px;
-    background-image:
-      url("A_watercolor_painting_displays_sixteen_square_card.png"),
-      radial-gradient(120% 120% at 50% 10%, #cde6ff 0%, #d9efff 30%, rgba(255,255,255,0) 60%),
-      linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(112,181,132,0.18) 45%, rgba(89,156,108,0.28) 80%),
-      radial-gradient(100% 80% at 50% 90%, rgba(167,216,170,0.55) 0%, rgba(255,255,255,0) 60%);
-    background-size: cover, 100% 100%, 100% 100%, 100% 100%;
-    background-position: center;
-    filter: saturate(.98) contrast(.98);
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,.04), inset 0 18px 40px rgba(255,255,255,.5);
+    background:
+      radial-gradient(120% 120% at 50% 12%, rgba(255,255,255,.9) 0%, rgba(255,255,255,0) 35%),
+      linear-gradient(180deg, #cfe9ff 0%, #aeddff 30%, #bfead2 60%, #8fcb9f 100%);
   }
-  .back{ transform: rotateY(180deg); display:flex; flex-direction:column; }
-  .img-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding:10px; }
-  .back img{ max-width:100%; max-height:100%; object-fit: contain; border-radius:10px; }
-  .label{ text-align:center; padding:8px 6px 10px; font-weight:700; color:#2b4333; }
+
+  /* 卡片背面：圖片上方 80%，文字下方 20% */
+  .back{ transform: rotateY(180deg); display:flex; flex-direction:column; overflow:hidden; }
+  .img-wrap{ 
+    flex:0 0 80%; 
+    display:flex; align-items:center; justify-content:center; 
+    background:#fff;
+  }
+  .back img{ 
+    max-width:95%; max-height:95%; 
+    object-fit: contain; 
+  }
+  .label{ 
+    flex:0 0 20%;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:16px;
+    color:#2b4333; background:#fff;
+  }
+
   .win{
     position:fixed; inset:0; display:none; align-items:center; justify-content:center;
     background: rgba(255,255,255,.82); z-index:10;
@@ -87,7 +97,7 @@
   <div class="bar">
     <div class="title">翻卡記憶遊戲 · 草原水彩動物</div>
     <div class="controls">
-      <label><input type="checkbox" id="voiceToggle" checked> 啟用發音</label>
+      <label><input type="checkbox" id="voiceToggle" checked> 啟用發音（英→中，間隔1秒）</label>
       <button id="resetBtn">重玩</button>
     </div>
   </div>
@@ -123,8 +133,26 @@ const ANIMALS = [
   {name:"Rabbit", img:"rabbit_text.jpg"},
   {name:"Rhino", img:"rhino_text.jpg"},
   {name:"Sheep", img:"sheep_text.jpg"},
-  {name:"Tiger", img:"tiger.jpg"}
+  {name:"Tiger", img:"tiger.jpg"},
+  {name:"Turtle", img:"turtle_text.jpg"},
+  {name:"Camel", img:"watercolor_camel.jpg"},
+  {name:"Crow", img:"watercolor_crow.jpg"},
+  {name:"Monkey", img:"watercolor_monkey.jpg"},
+  {name:"Mouse", img:"watercolor_mouse.jpg"},
+  {name:"Shark", img:"watercolor_shark.jpg"},
+  {name:"Snake", img:"watercolor_snake.jpg"},
+  {name:"Wolf", img:"watercolor_wolf.jpg"},
+  {name:"Zebra", img:"zebra_text.jpg"}
 ];
+
+const ZH = {
+  "Bear":"熊","Cat":"貓","Chicken":"雞","Cow":"牛","Dog":"狗","Elephant":"大象",
+  "Fish":"魚","Fox":"狐狸","Giraffe":"長頸鹿","Gorilla":"大猩猩","Hippo":"河馬","Horse":"馬",
+  "Lion":"獅子","Panda":"貓熊","Pig":"豬","Rabbit":"兔子","Rhino":"犀牛","Sheep":"綿羊","Tiger":"老虎",
+  "Turtle":"烏龜","Camel":"駱駝","Crow":"烏鴉","Monkey":"猴子","Mouse":"老鼠","Shark":"鯊魚",
+  "Snake":"蛇","Wolf":"狼","Zebra":"斑馬"
+};
+
 const PICK = 10;
 const grid = document.getElementById('grid');
 const stats = document.getElementById('stats');
@@ -135,7 +163,6 @@ const resetBtn = document.getElementById('resetBtn');
 const voiceToggle = document.getElementById('voiceToggle');
 let deck=[], first=null, second=null, lock=false, steps=0, matched=0;
 
-/* === 新版 fitAll，確保任何螢幕都能看到所有卡牌 === */
 function fitAll(){
   const hdrH = document.getElementById('hdr').offsetHeight || 120;
   const W = document.documentElement.clientWidth - 24;
@@ -144,20 +171,87 @@ function fitAll(){
   const w1 = (W - gap*(cols-1)) / cols;
   const h1 = (H - gap*(rows-1)) / rows / aspect;
   let size = Math.floor(Math.min(w1, h1));
-  size = Math.max(60, Math.min(160, size));
+  size = Math.max(60, Math.min(170, size));
   document.documentElement.style.setProperty('--cardW', size + 'px');
 }
 window.addEventListener('resize', fitAll);
 
 function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
-function newDeck(){const pool=[...ANIMALS];shuffle(pool);const chosen=pool.slice(0,PICK);deck=[];chosen.forEach(a=>deck.push({...a}));chosen.forEach(a=>deck.push({...a}));shuffle(deck);}
-function buildGrid(){grid.innerHTML='';deck.forEach((card,idx)=>{const el=document.createElement('button');el.className='card';el.setAttribute('aria-label',card.name);el.innerHTML=`<div class="inner" data-idx="${idx}"><div class="face front"><div class="art"></div></div><div class="face back"><div class="img-wrap"><img alt="${card.name}" src="${card.img}"></div><div class="label">${card.name}</div></div></div>`;el.addEventListener('click',()=>onFlip(el.querySelector('.inner'),card));grid.appendChild(el);});}
-function onFlip(inner,card){if(lock)return;if(inner.classList.contains('flipped'))return;inner.classList.add('flipped');speak(card.name);if(!first){first={inner,card};return;}if(first.inner===inner)return;second={inner,card};lock=true;steps++;updateStats();if(first.card.name===second.card.name){matched++;setTimeout(()=>{first=null;second=null;lock=false;if(matched===PICK)showWin();},200);}else{setTimeout(()=>{first.inner.classList.remove('flipped');second.inner.classList.remove('flipped');first=null;second=null;lock=false;},700);}}
-function updateStats(){stats.textContent=`步數：${steps}　｜　配對：${matched} / ${PICK}`;}
-function showWin(){winStats.textContent=`共 ${steps} 步完成配對`;win.style.display='flex';}
-function resetGame(){steps=0;matched=0;first=null;second=null;lock=false;win.style.display='none';newDeck();buildGrid();fitAll();updateStats();}
-function speak(text){if(!voiceToggle.checked)return;try{const utt=new SpeechSynthesisUtterance(text);utt.lang='en-US';utt.rate=0.95;window.speechSynthesis.cancel();window.speechSynthesis.speak(utt);}catch(e){}}
-resetBtn.addEventListener('click', resetGame);againBtn.addEventListener('click', resetGame);
+function newDeck(){
+  const pool=[...ANIMALS];
+  shuffle(pool);
+  const chosen=pool.slice(0,PICK);
+  deck=[]; chosen.forEach(a=>deck.push({...a})); chosen.forEach(a=>deck.push({...a}));
+  shuffle(deck);
+}
+function buildGrid(){
+  grid.innerHTML='';
+  deck.forEach((card,idx)=>{
+    const el=document.createElement('button');
+    el.className='card'; el.setAttribute('aria-label',card.name);
+    el.innerHTML=`
+      <div class="inner" data-idx="${idx}">
+        <div class="face front"><div class="art" aria-hidden="true"></div></div>
+        <div class="face back">
+          <div class="img-wrap"><img alt="${card.name}" src="${card.img}"></div>
+          <div class="label">${card.name}</div>
+        </div>
+      </div>`;
+    el.addEventListener('click',()=>onFlip(el.querySelector('.inner'),card));
+    grid.appendChild(el);
+  });
+}
+
+function onFlip(inner,card){
+  if(lock)return;
+  if(inner.classList.contains('flipped'))return;
+  inner.classList.add('flipped');
+  speakBilingual(card.name);
+  if(!first){ first={inner,card}; return; }
+  if(first.inner===inner) return;
+  second={inner,card}; lock=true; steps++; updateStats();
+  if(first.card.name===second.card.name){
+    matched++;
+    setTimeout(()=>{
+      first=null; second=null; lock=false;
+      if(matched===PICK) showWin();
+    },200);
+  }else{
+    setTimeout(()=>{
+      first.inner.classList.remove('flipped');
+      second.inner.classList.remove('flipped');
+      first=null; second=null; lock=false;
+    },700);
+  }
+}
+
+function updateStats(){ stats.textContent=`步數：${steps}　｜　配對：${matched} / ${PICK}`; }
+function showWin(){ winStats.textContent=`共 ${steps} 步完成配對`; win.style.display='flex'; }
+function resetGame(){ steps=0; matched=0; first=null; second=null; lock=false; win.style.display='none'; newDeck(); buildGrid(); fitAll(); updateStats(); }
+
+function pickVoice(langPrefix){
+  const vs = window.speechSynthesis?.getVoices?.() || [];
+  return vs.find(v=>v.lang && v.lang.toLowerCase().startsWith(langPrefix)) || null;
+}
+function speakOnce(text, lang){
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = lang;
+  utt.rate = 0.95;
+  const v = pickVoice(lang.slice(0,2));
+  if(v) utt.voice = v;
+  window.speechSynthesis.speak(utt);
+}
+function speakBilingual(enWord){
+  if(!voiceToggle.checked) return;
+  try{
+    const zhWord = ZH[enWord] || enWord;
+    window.speechSynthesis.cancel();
+    speakOnce(enWord, 'en-US');
+    setTimeout(()=>speakOnce(zhWord, 'zh-TW'), 1000);
+  }catch(e){}
+}
+
+resetBtn.addEventListener('click', resetGame); againBtn.addEventListener('click', resetGame);
 resetGame();
 </script>
 </body>
